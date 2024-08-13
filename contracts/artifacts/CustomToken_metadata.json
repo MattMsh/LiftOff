@@ -8,11 +8,6 @@
 			{
 				"inputs": [
 					{
-						"internalType": "address",
-						"name": "_creator",
-						"type": "address"
-					},
-					{
 						"internalType": "string",
 						"name": "_name",
 						"type": "string"
@@ -35,11 +30,6 @@
 					{
 						"internalType": "uint256",
 						"name": "_amount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_tokenPrice",
 						"type": "uint256"
 					}
 				],
@@ -204,74 +194,6 @@
 					{
 						"indexed": true,
 						"internalType": "address",
-						"name": "creator",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "string",
-						"name": "name",
-						"type": "string"
-					},
-					{
-						"indexed": false,
-						"internalType": "string",
-						"name": "ticker",
-						"type": "string"
-					},
-					{
-						"indexed": false,
-						"internalType": "string",
-						"name": "description",
-						"type": "string"
-					},
-					{
-						"indexed": false,
-						"internalType": "string",
-						"name": "image",
-						"type": "string"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "tokenPrice",
-						"type": "uint256"
-					}
-				],
-				"name": "TokenCreated",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "buyer",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "TokensPurchased",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
 						"name": "from",
 						"type": "address"
 					},
@@ -360,13 +282,6 @@
 			},
 			{
 				"inputs": [],
-				"name": "buyTokens",
-				"outputs": [],
-				"stateMutability": "payable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
 				"name": "decimals",
 				"outputs": [
 					{
@@ -445,19 +360,6 @@
 						"internalType": "string",
 						"name": "",
 						"type": "string"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "tokenPrice",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -728,19 +630,11 @@
 			]
 		},
 		"contracts/CustomToken.sol": {
-			"keccak256": "0x045802b58d52ffd197c2a4d287a5fdac6e68a5e2e8538dce740dc164129c7416",
+			"keccak256": "0x35978a348f8136914c3a693625ff3ed565b7a2435decbb5c952c88dc62a79112",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://c6ca8df9d40776d395ef43ec1623c3db9c94727a576a8503823df56290bf2d0a",
-				"dweb:/ipfs/Qmb8oCm3Z4VDEDhcjpQ2oHmYzE8aFvDFxfPi5f2vfsmaLy"
-			]
-		},
-		"hardhat/console.sol": {
-			"keccak256": "0x7434453e6d3b7d0e5d0eb7846ffdbc27f0ccf3b163591263739b628074dc103a",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://49355f780520494d1d5a0f01858385e51bb5280ce0ecfb960f16995065dca395",
-				"dweb:/ipfs/QmSwJ6C5QLz6xKeQZS8wbwjU1KxRFTYfwbGmtzisd5sRW4"
+				"bzz-raw://802ab36b86d585941d0a48545ba6eae6bf639131d182a36f60743e84fcf62308",
+				"dweb:/ipfs/QmWgkpMagthi99rBR5jhcr1WcKYY6iP1UCb4HRCB8ugq11"
 			]
 		}
 	},
