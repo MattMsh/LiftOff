@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.20+commit.a1b79de6"
+		"version": "0.8.26+commit.8a97fa7a"
 	},
 	"language": "Solidity",
 	"output": {
@@ -21,6 +21,21 @@
 						"internalType": "uint256",
 						"name": "_coinsToLP",
 						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_feeWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_gammaWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_deltaWallet",
+						"type": "address"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -111,6 +126,32 @@
 				"type": "event"
 			},
 			{
+				"inputs": [],
+				"name": "coinsToLP",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "contractPrice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "string",
@@ -139,8 +180,53 @@
 					}
 				],
 				"name": "createPoolWithToken",
-				"outputs": [],
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
 				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "deltaWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "feeWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "gammaWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -231,7 +317,7 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "price",
+						"name": "_price",
 						"type": "uint256"
 					}
 				],
@@ -258,10 +344,6 @@
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
-			},
-			{
-				"stateMutability": "payable",
-				"type": "receive"
 			}
 		],
 		"devdoc": {
@@ -301,7 +383,7 @@
 		"compilationTarget": {
 			"contracts/PoolFactory.sol": "PoolFactory"
 		},
-		"evmVersion": "shanghai",
+		"evmVersion": "cancun",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -362,19 +444,19 @@
 			]
 		},
 		"contracts/LiquidityPool.sol": {
-			"keccak256": "0x407715e7f4b9e0b933ddebe9b86c312fc9351bb99b438cea0c0b1042c6d9ef6f",
+			"keccak256": "0xbcf163b34410c1ebae4b7e9abe31f96cba3130abb3f9b135364828f254667927",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a33fc204c147b1a20dd3dcac3892655d5bc4dc7773766640043b2a4573caa7b4",
-				"dweb:/ipfs/QmPy5TxtZQ9R4pVvBofvZmbaEoKYxCSHFQmkGFKWfYJQ66"
+				"bzz-raw://3040ecdf1356a54425fd77e8234cd1aa412ec17de3e69005f4b6c0e9cf1b4888",
+				"dweb:/ipfs/QmPn8b9rrBphq6EeTuXP8VK1dwiCQ35PGcL84QeTbERN9d"
 			]
 		},
 		"contracts/PoolFactory.sol": {
-			"keccak256": "0x6f73fed0d8e0f26a656cf18097bfb7cc7b502bb88e9e4d32bf1809695577eaf4",
+			"keccak256": "0xa277cc89fd799d3ce31091c001995ccbb314888d3b2206398c6b8a1d5cae2caf",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://0f52538f9452719edd1f09f9a09bc48f1112d92d867c3cb57253af323b1d9529",
-				"dweb:/ipfs/QmYPbYM5Rfz5MJ6EK6CW9W2YhtiwHRscqdgWTTseHtKzSp"
+				"bzz-raw://8aab48305d0a2ada3be5f308e0ffb699782172d7db677892bb06d752b41da844",
+				"dweb:/ipfs/QmQjsg3PMWYjdEisZNZmcra4iw7ku71qmy2dhtavKqZCjV"
 			]
 		},
 		"contracts/Token.sol": {
@@ -383,14 +465,6 @@
 			"urls": [
 				"bzz-raw://7ec01a6937791c6e5c618ebf79e2ff15f47c1f430dde7bf3749648590059e7ca",
 				"dweb:/ipfs/QmdosdFB5TEVJLGvDEbdHAMTMwGg9KiPqbRA16sPctAWnd"
-			]
-		},
-		"hardhat/console.sol": {
-			"keccak256": "0x7434453e6d3b7d0e5d0eb7846ffdbc27f0ccf3b163591263739b628074dc103a",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://49355f780520494d1d5a0f01858385e51bb5280ce0ecfb960f16995065dca395",
-				"dweb:/ipfs/QmSwJ6C5QLz6xKeQZS8wbwjU1KxRFTYfwbGmtzisd5sRW4"
 			]
 		}
 	},

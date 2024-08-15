@@ -26,11 +26,6 @@
 						"internalType": "string",
 						"name": "_image",
 						"type": "string"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_amount",
-						"type": "uint256"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -317,6 +312,24 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_amount",
+						"type": "uint256"
+					}
+				],
+				"name": "mint",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -630,11 +643,11 @@
 			]
 		},
 		"contracts/Token.sol": {
-			"keccak256": "0x74570398f668526d1ae2b94fbf483ac0e1653ed373b064c4c6b23e5ddd377c90",
+			"keccak256": "0x91b9d60bcf57222bb92cc5c154f0c728f0d19aa8d57e4dbfb487a58d374dc649",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://cdfc1d92dc58ff433317dbfb83c2f0472485b8fe197619da2bf3ad176bbb2184",
-				"dweb:/ipfs/QmYDgntX4Esc4jSzHYe4mKJugNHCtUAXB34mgN9E3HpdLq"
+				"bzz-raw://7ec01a6937791c6e5c618ebf79e2ff15f47c1f430dde7bf3749648590059e7ca",
+				"dweb:/ipfs/QmdosdFB5TEVJLGvDEbdHAMTMwGg9KiPqbRA16sPctAWnd"
 			]
 		}
 	},

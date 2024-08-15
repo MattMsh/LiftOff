@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
-import "./Token.sol";
+import { Ownable, Token } from "./Token.sol";
 
 contract LiquidityPool is Ownable {
     Token public token;
 
-    address public constant bankWallet = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db; // 73% fee +  1.4211% royal
+    address public constant BANK_WALLET = 0x1aE0EA34a72D944a8C7603FfB3eC30a6669E454C; // 73% fee +  1.4211% royal
     address public feeWallet; // 27% fee
 
-    address public constant airDropWallet = 0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB; // 1.5789% royal
+    address public constant AIR_DROP_WALLET = 0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC; // 1.5789% royal
     address public gammaWallet; // 2% bonding curve royal
     address public deltaWallet; // 4% bonding curve royal
 
@@ -33,8 +33,8 @@ contract LiquidityPool is Ownable {
         gammaWallet = _gammaWallet;
         deltaWallet = _deltaWallet;
 
-        token.mint(bankWallet, getPercentOf(_totalSupply, 14211)); // 1.4211% royalty
-        token.mint(airDropWallet, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
+        token.mint(BANK_WALLET, getPercentOf(_totalSupply, 14211)); // 1.4211% royalty
+        token.mint(AIR_DROP_WALLET, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
         token.mint(gammaWallet, getPercentOf(_totalSupply, 20000)); // 2% royalty for burn
         token.mint(deltaWallet, getPercentOf(_totalSupply, 40000)); // 4% royalty for burn
 
@@ -45,7 +45,7 @@ contract LiquidityPool is Ownable {
         return _amount / 100_0000 * _percent;
     }
 
-    function buyToken() payable external {
+    function buyToken() external payable {
         require(msg.value > 0, "Must provide VTRU to buy tokens");
         
         uint fee = msg.value / 100;
@@ -57,7 +57,7 @@ contract LiquidityPool is Ownable {
         
         token.transfer(msg.sender, tokenAmount);
 
-        payable(bankWallet).transfer(getPercentOf(fee, 730000));
+        payable(BANK_WALLET).transfer(getPercentOf(fee, 730000));
         payable(feeWallet).transfer(getPercentOf(fee, 270000));
         
         emit TokenBought(msg.sender, amountWithoutFee, tokenAmount);
@@ -80,20 +80,11 @@ contract LiquidityPool is Ownable {
         token.transferFrom(msg.sender, address(this), tokenAmount);
         payable(msg.sender).transfer(vtruAmountAfterFee);
 
-        payable(bankWallet).transfer(getPercentOf(fee, 730000));
+        payable(BANK_WALLET).transfer(getPercentOf(fee, 730000));
         payable(feeWallet).transfer(getPercentOf(fee, 270000));
         
         emit TokenSold(msg.sender, tokenAmount, vtruAmountAfterFee);
     }
-
-    // function getOutputAmount(uint256 inputAmount, uint256 inputReserve, uint256 outputReserve) internal pure returns (uint256) {
-    //     require(inputReserve > 0 && outputReserve > 0, "Invalid reserves");
-        
-    //     uint256 inputAmountWithFee = inputAmount * 997;
-    //     uint256 numerator = inputAmountWithFee * outputReserve;
-    //     uint256 denominator = (inputReserve * 1000) + inputAmountWithFee;
-    //     return numerator / denominator;
-    // }
 
     receive() external payable { }
 

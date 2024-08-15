@@ -34,3 +34,17 @@ export const deploy = async (contractName: string, args: Array<any>, from?: stri
   })
   return newContractInstance.options
 }
+
+export const contract = async (contractName: string): Contract => {
+  const web3 = new Web3(web3Provider)
+  console.log(`creating ${contractName}`)
+  // Note that the script needs the ABI which is generated from the compilation artifact.
+  // Make sure contract is compiled and artifacts are generated
+  const artifactsPath = `browser/contracts/artifacts/${contractName}.json`
+
+  const metadata = JSON.parse(await remix.call('fileManager', 'getFile', artifactsPath))
+
+  const accounts = await web3.eth.getAccounts()
+
+  return new web3.eth.Contract(metadata.abi)
+}

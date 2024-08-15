@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.20+commit.a1b79de6"
+		"version": "0.8.26+commit.8a97fa7a"
 	},
 	"language": "Solidity",
 	"output": {
@@ -169,7 +169,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "airDropWallet",
+				"name": "AIR_DROP_WALLET",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -182,7 +182,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "bankWallet",
+				"name": "BANK_WALLET",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -379,7 +379,7 @@
 		"compilationTarget": {
 			"contracts/LiquidityPool.sol": "LiquidityPool"
 		},
-		"evmVersion": "shanghai",
+		"evmVersion": "cancun",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -440,11 +440,11 @@
 			]
 		},
 		"contracts/LiquidityPool.sol": {
-			"keccak256": "0x0d3cf15bc7a74f1f6a3ece4673094fe6989beb325a1a176238746dc3b9fe9bfe",
+			"keccak256": "0xbcf163b34410c1ebae4b7e9abe31f96cba3130abb3f9b135364828f254667927",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://67c180bad1378f2ded84a7c2f9f930fbd696cc9ef163dc6df1ec4f5a132fab43",
-				"dweb:/ipfs/QmeVv2deE2tEthGnp68MMPoQBZRmEhe4iB7VinDqFwXsAu"
+				"bzz-raw://3040ecdf1356a54425fd77e8234cd1aa412ec17de3e69005f4b6c0e9cf1b4888",
+				"dweb:/ipfs/QmPn8b9rrBphq6EeTuXP8VK1dwiCQ35PGcL84QeTbERN9d"
 			]
 		},
 		"contracts/Token.sol": {

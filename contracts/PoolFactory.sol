@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
-import "hardhat/console.sol";
-
-import "./LiquidityPool.sol";
+pragma solidity ^0.8.17.0;
+import {LiquidityPool, Ownable} from "./LiquidityPool.sol";
 
 contract PoolFactory is Ownable {
-    uint contractPrice;
-    uint coinsToLP;
+    uint public contractPrice;
+    uint public coinsToLP;
 
     address public immutable gnosisWallet1;
+    address public immutable feeWallet;
+    address public immutable gammaWallet;
+    address public immutable deltaWallet;
 
-    mapping(address => address[]) userTokens;
+    mapping(address => address[]) private userTokens;
 
     event TokenCreated(
         address indexed creator,
@@ -24,11 +25,17 @@ contract PoolFactory is Ownable {
     constructor(
         address _walletToReceiveFee,
         uint _contractPrice,
-        uint _coinsToLP
+        uint _coinsToLP,
+        address _feeWallet,
+        address _gammaWallet,
+        address _deltaWallet
     ) Ownable(msg.sender) {
         gnosisWallet1 = _walletToReceiveFee;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
+        feeWallet = _feeWallet;
+        gammaWallet = _gammaWallet;
+        deltaWallet = _deltaWallet;
     }
 
     function createPoolWithToken(
@@ -36,15 +43,12 @@ contract PoolFactory is Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint256 _amount,
-        address _feeWallet,
-        address _gammaWallet,
-        address _deltaWallet
+        uint256 _amount
     ) public payable returns (address) {
         require(msg.value >= getContractPrice(), "Not enough value");
         require(_amount >= 1000, "Too few tokens to create");
 
-        LiquidityPool pool = new LiquidityPool(_name, _ticker, _description, _image, _amount, _feeWallet, _gammaWallet, _deltaWallet);
+        LiquidityPool pool = new LiquidityPool(_name, _ticker, _description, _image, _amount, feeWallet, gammaWallet, deltaWallet);
         userTokens[msg.sender].push(pool.getTokenAddress());
 
         payable(gnosisWallet1).transfer(contractPrice);
