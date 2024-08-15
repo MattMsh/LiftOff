@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.26+commit.8a97fa7a"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -21,6 +21,16 @@
 						"internalType": "uint256",
 						"name": "_coinsToLP",
 						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_bankWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_airDropWallet",
+						"type": "address"
 					},
 					{
 						"internalType": "address",
@@ -127,6 +137,45 @@
 			},
 			{
 				"inputs": [],
+				"name": "MIN_SUPPLY",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "airDropWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "bankWallet",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
 				"name": "coinsToLP",
 				"outputs": [
 					{
@@ -230,19 +279,6 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
-				"name": "getContractPrice",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
 				"inputs": [
 					{
 						"internalType": "address",
@@ -263,7 +299,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "gnosisWallet1",
+				"name": "gnosisWallet",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -383,7 +419,7 @@
 		"compilationTarget": {
 			"contracts/PoolFactory.sol": "PoolFactory"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -444,19 +480,19 @@
 			]
 		},
 		"contracts/LiquidityPool.sol": {
-			"keccak256": "0xbcf163b34410c1ebae4b7e9abe31f96cba3130abb3f9b135364828f254667927",
+			"keccak256": "0x868d9e6f3a888acd16fcb83dbd0c9e00229cfa695b72f3e1e4158686b5c96224",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://3040ecdf1356a54425fd77e8234cd1aa412ec17de3e69005f4b6c0e9cf1b4888",
-				"dweb:/ipfs/QmPn8b9rrBphq6EeTuXP8VK1dwiCQ35PGcL84QeTbERN9d"
+				"bzz-raw://dae08222c6068fe6f6a7c37e9b661a118fff99f8eec4f6b4f131fcac243e71ba",
+				"dweb:/ipfs/QmVEp8KiSBegfKCvk88NNiUNKrEcucHXhxsdQnEjpvu23w"
 			]
 		},
 		"contracts/PoolFactory.sol": {
-			"keccak256": "0xa277cc89fd799d3ce31091c001995ccbb314888d3b2206398c6b8a1d5cae2caf",
+			"keccak256": "0xefdfe80e1350b71fb4e5d12d67e06df94483b3264c83d05069586f651d80efe6",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://8aab48305d0a2ada3be5f308e0ffb699782172d7db677892bb06d752b41da844",
-				"dweb:/ipfs/QmQjsg3PMWYjdEisZNZmcra4iw7ku71qmy2dhtavKqZCjV"
+				"bzz-raw://2bdd5ee3e50689d5c37f62190a3cb62f1412b50af60c82518084b462103734e8",
+				"dweb:/ipfs/Qme5MAqe8p9yzgteaVgegWDvsU8WQsPabYcMgATS9fswHH"
 			]
 		},
 		"contracts/Token.sol": {

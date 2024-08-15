@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.26+commit.8a97fa7a"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -31,6 +31,16 @@
 						"internalType": "uint256",
 						"name": "_totalSupply",
 						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_bankWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_airDropWallet",
+						"type": "address"
 					},
 					{
 						"internalType": "address",
@@ -72,31 +82,6 @@
 				],
 				"name": "OwnableUnauthorizedAccount",
 				"type": "error"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "from",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "to",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "FeeTransferred",
-				"type": "event"
 			},
 			{
 				"anonymous": false,
@@ -169,7 +154,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "AIR_DROP_WALLET",
+				"name": "airDropWallet",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -182,7 +167,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "BANK_WALLET",
+				"name": "bankWallet",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -198,6 +183,44 @@
 				"name": "buyToken",
 				"outputs": [],
 				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_vtruAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "calcOutputToken",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_tokenAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "calcOutputVtru",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -379,7 +402,7 @@
 		"compilationTarget": {
 			"contracts/LiquidityPool.sol": "LiquidityPool"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -440,11 +463,11 @@
 			]
 		},
 		"contracts/LiquidityPool.sol": {
-			"keccak256": "0xbcf163b34410c1ebae4b7e9abe31f96cba3130abb3f9b135364828f254667927",
+			"keccak256": "0x5be30d5e29dd927741ae7d4e439d727478337bce86de5fae203b92fe11c51869",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://3040ecdf1356a54425fd77e8234cd1aa412ec17de3e69005f4b6c0e9cf1b4888",
-				"dweb:/ipfs/QmPn8b9rrBphq6EeTuXP8VK1dwiCQ35PGcL84QeTbERN9d"
+				"bzz-raw://011e12e0b66b63c06a704d6d10d895c94dd0795ff4f41625186aec43028bf58a",
+				"dweb:/ipfs/QmP8Hx7FApSb6muwVM2PYiePzzXS5s6Wy2srj7cKM11YJ5"
 			]
 		},
 		"contracts/Token.sol": {

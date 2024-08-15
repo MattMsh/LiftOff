@@ -24,7 +24,7 @@ export const deploy = async (contractName: string, args: Array<any>, from?: stri
   const contract: Contract = new web3.eth.Contract(metadata.abi)
 
   const contractSend: ContractSendMethod = contract.deploy({
-    data: metadata.data.bytecode.object,
+    data: '0x' + metadata.data.bytecode.object,
     arguments: args
   })
 

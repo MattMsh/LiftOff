@@ -6,10 +6,14 @@ contract PoolFactory is Ownable {
     uint public contractPrice;
     uint public coinsToLP;
 
-    address public immutable gnosisWallet1;
+    address public immutable gnosisWallet;
+    address public immutable bankWallet;
+    address public immutable airDropWallet;
     address public immutable feeWallet;
     address public immutable gammaWallet;
     address public immutable deltaWallet;
+
+    uint public constant MIN_SUPPLY = 1_000_000;
 
     mapping(address => address[]) private userTokens;
 
@@ -26,13 +30,18 @@ contract PoolFactory is Ownable {
         address _walletToReceiveFee,
         uint _contractPrice,
         uint _coinsToLP,
+        address _bankWallet,
+        address _airDropWallet, 
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
     ) Ownable(msg.sender) {
-        gnosisWallet1 = _walletToReceiveFee;
+        require(_contractPrice >= _coinsToLP, "VTRU to LP amount must be less than contract price");
+        gnosisWallet = _walletToReceiveFee;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
+        bankWallet = _bankWallet;
+        airDropWallet = _airDropWallet;
         feeWallet = _feeWallet;
         gammaWallet = _gammaWallet;
         deltaWallet = _deltaWallet;
@@ -45,30 +54,28 @@ contract PoolFactory is Ownable {
         string memory _image,
         uint256 _amount
     ) public payable returns (address) {
-        require(msg.value >= getContractPrice(), "Not enough value");
-        require(_amount >= 1000, "Too few tokens to create");
+        require(msg.value >= contractPrice, "Not enough value");
+        require(_amount >= MIN_SUPPLY, "Too few tokens to create");
 
-        LiquidityPool pool = new LiquidityPool(_name, _ticker, _description, _image, _amount, feeWallet, gammaWallet, deltaWallet);
+        LiquidityPool pool = new LiquidityPool(_name, _ticker, _description, _image, _amount, bankWallet, airDropWallet, feeWallet, gammaWallet, deltaWallet);
         userTokens[msg.sender].push(pool.getTokenAddress());
 
-        payable(gnosisWallet1).transfer(contractPrice);
+        payable(gnosisWallet).transfer(contractPrice - coinsToLP);
         payable(address(pool)).transfer(coinsToLP);
 
         return address(pool);
     }
 
-    function getContractPrice() public view returns(uint) {
-        return contractPrice + coinsToLP;
-    }
-
     function setContractPrice(uint _price) public onlyOwner returns (bool) {
         require(_price > 0, "Too low price");
+        require(_price >= coinsToLP, "Contract price must be greater than amount VTRU to LP");
         contractPrice = _price;
         return true;
     }
 
     function setAmountToLP(uint _amount) public onlyOwner returns (bool) {
         require(_amount >= 0, "Too low amount");
+        require(_amount <= contractPrice, "VTRU to LP amount must be less than contract price");
         coinsToLP = _amount;
         return true;
     }

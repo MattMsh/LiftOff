@@ -1,42 +1,44 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.17.0;
 
 import { Ownable, Token } from "./Token.sol";
 
 contract LiquidityPool is Ownable {
     Token public token;
 
-    address public constant BANK_WALLET = 0x1aE0EA34a72D944a8C7603FfB3eC30a6669E454C; // 73% fee +  1.4211% royal
-    address public feeWallet; // 27% fee
-
-    address public constant AIR_DROP_WALLET = 0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC; // 1.5789% royal
-    address public gammaWallet; // 2% bonding curve royal
-    address public deltaWallet; // 4% bonding curve royal
+    address public immutable bankWallet; // 73% fee +  1.4211% royal
+    address public immutable feeWallet; // 27% fee
+    address public immutable airDropWallet; // 1.5789% royal
+    address public immutable gammaWallet; // 2% bonding curve royal
+    address public immutable deltaWallet; // 4% bonding curve royal
 
     event TokenBought(address indexed buyer, uint256 vtruAmount, uint256 tokenAmount);
     event TokenSold(address indexed seller, uint256 tokenAmount, uint256 vtruAmount);
-    event FeeTransferred(address indexed from, address indexed to, uint256 amount);
 
     constructor(
         string memory _name,
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint _totalSupply, 
+        uint _totalSupply,
+        address _bankWallet,
+        address _airDropWallet, 
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
     ) Ownable(msg.sender) {
         token = new Token(_name, _ticker, _description, _image);
 
+        bankWallet = _bankWallet;
+        airDropWallet = _airDropWallet;
         feeWallet = _feeWallet;
         gammaWallet = _gammaWallet;
         deltaWallet = _deltaWallet;
 
-        token.mint(BANK_WALLET, getPercentOf(_totalSupply, 14211)); // 1.4211% royalty
-        token.mint(AIR_DROP_WALLET, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
-        token.mint(gammaWallet, getPercentOf(_totalSupply, 20000)); // 2% royalty for burn
-        token.mint(deltaWallet, getPercentOf(_totalSupply, 40000)); // 4% royalty for burn
+        token.mint(_bankWallet, getPercentOf(_totalSupply, 14211)); // 1.4211% royalty
+        token.mint(_airDropWallet, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
+        token.mint(_gammaWallet, getPercentOf(_totalSupply, 20000)); // 2% royalty for burn
+        token.mint(_deltaWallet, getPercentOf(_totalSupply, 40000)); // 4% royalty for burn
 
         token.mint(address(this), getPercentOf(_totalSupply, 910000)); // 91% to LP
     }
@@ -49,18 +51,15 @@ contract LiquidityPool is Ownable {
         require(msg.value > 0, "Must provide VTRU to buy tokens");
         
         uint fee = msg.value / 100;
-        uint amountWithoutFee = msg.value - fee;
-        uint256 vtruReserve = getVtruBalance() + amountWithoutFee;
-        uint256 tokenReserve = getTokenBalance();
+        uint vtruAmountWithoutFee = msg.value - fee;
 
-        uint256 tokenAmount = tokenReserve / (vtruReserve / amountWithoutFee);
+        uint256 tokenAmount = calcOutputToken(vtruAmountWithoutFee);
         
         token.transfer(msg.sender, tokenAmount);
 
-        payable(BANK_WALLET).transfer(getPercentOf(fee, 730000));
-        payable(feeWallet).transfer(getPercentOf(fee, 270000));
+        transferFees(fee);
         
-        emit TokenBought(msg.sender, amountWithoutFee, tokenAmount);
+        emit TokenBought(msg.sender, vtruAmountWithoutFee, tokenAmount);
     }
     
     // Before this need to call tokens approve
@@ -68,11 +67,8 @@ contract LiquidityPool is Ownable {
         require(tokenAmount > 0, "Must provide tokens to sell");
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= tokenAmount, "Check the token allowance");
-        
-        uint256 vtruReserve = getVtruBalance();
-        uint256 tokenReserve = getTokenBalance() + tokenAmount;
 
-        uint256 vtruAmount = vtruReserve / (tokenReserve / tokenAmount);
+        uint256 vtruAmount = calcOutputVtru(tokenAmount);
        
         uint fee = vtruAmount / 100;
         uint vtruAmountAfterFee = vtruAmount - fee;
@@ -80,10 +76,29 @@ contract LiquidityPool is Ownable {
         token.transferFrom(msg.sender, address(this), tokenAmount);
         payable(msg.sender).transfer(vtruAmountAfterFee);
 
-        payable(BANK_WALLET).transfer(getPercentOf(fee, 730000));
-        payable(feeWallet).transfer(getPercentOf(fee, 270000));
+        transferFees(fee);
         
         emit TokenSold(msg.sender, tokenAmount, vtruAmountAfterFee);
+    }
+
+    function transferFees(uint _amount) private returns (bool) {
+        payable(bankWallet).transfer(getPercentOf(_amount, 730000));
+        payable(feeWallet).transfer(getPercentOf(_amount, 270000));
+        return true;
+    }
+
+    function calcOutputVtru(uint _tokenAmount) view public returns (uint) {
+        uint vtruBalance = getVtruBalance();
+        uint tokenReserve = getTokenBalance() + _tokenAmount;
+
+        return ((vtruBalance / (tokenReserve / _tokenAmount)) * 99) / 100;
+    }
+
+    function calcOutputToken(uint _vtruAmount) view public returns (uint) {
+        uint tokenBalance = getTokenBalance();
+        uint vtruReserve = getVtruBalance() + _vtruAmount;
+
+        return ((tokenBalance / (vtruReserve / _vtruAmount)) * 99) / 100;
     }
 
     receive() external payable { }
