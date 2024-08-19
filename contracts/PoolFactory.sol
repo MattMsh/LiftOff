@@ -29,7 +29,7 @@ contract PoolFactory is Ownable {
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
-    ) {
+    ) Ownable(msg.sender) {
         require(
             _contractPrice >= _coinsToLP,
             "VTRU to LP amount must be less than contract price"

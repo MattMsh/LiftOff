@@ -38,7 +38,7 @@ contract LiquidityPool is Ownable {
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
-    ) {
+    ) Ownable(msg.sender) {
         token = new Token(_name, _ticker, _description, _image);
 
         bankWallet = _bankWallet;

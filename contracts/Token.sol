@@ -13,7 +13,7 @@ contract Token is ERC20, Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image
-    ) ERC20(_name, _ticker) {
+    ) Ownable(msg.sender) ERC20(_name, _ticker) {
         require(bytes(_description).length <= 250, "Description too long");
         // Image file size is not feasible to check directly in smart contract; using string for URI
         // require(bytes(_image).length <= 250 * 1024 * 1024, "Image file size too large");
