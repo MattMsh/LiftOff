@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17.0;
-import {LiquidityPool, Ownable} from "./LiquidityPool.sol";
+pragma solidity ^0.8.21;
+
+import {PoolFormula, LiquidityPool, Ownable} from "./LiquidityPool.sol";
 
 contract PoolFactory is Ownable {
     uint public contractPrice;
@@ -17,26 +18,22 @@ contract PoolFactory is Ownable {
 
     mapping(address => address[]) private userTokens;
 
-    event TokenCreated(
-        address indexed creator,
-        string name,
-        string ticker,
-        string description,
-        string image,
-        uint256 amount
-    );
+    event PoolCreated(address pool);
 
     constructor(
         address _walletToReceiveFee,
         uint _contractPrice,
         uint _coinsToLP,
         address _bankWallet,
-        address _airDropWallet, 
+        address _airDropWallet,
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
-    ) Ownable(msg.sender) {
-        require(_contractPrice >= _coinsToLP, "VTRU to LP amount must be less than contract price");
+    ) {
+        require(
+            _contractPrice >= _coinsToLP,
+            "VTRU to LP amount must be less than contract price"
+        );
         gnosisWallet = _walletToReceiveFee;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
@@ -52,30 +49,72 @@ contract PoolFactory is Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint256 _amount
-    ) public payable returns (address) {
+        uint _amount
+    ) public payable {
         require(msg.value >= contractPrice, "Not enough value");
         require(_amount >= MIN_SUPPLY, "Too few tokens to create");
 
-        LiquidityPool pool = new LiquidityPool(_name, _ticker, _description, _image, _amount, bankWallet, airDropWallet, feeWallet, gammaWallet, deltaWallet);
+        LiquidityPool pool = new LiquidityPool(
+            _name,
+            _ticker,
+            _description,
+            _image,
+            _amount,
+            bankWallet,
+            airDropWallet,
+            feeWallet,
+            gammaWallet,
+            deltaWallet
+        );
+
         userTokens[msg.sender].push(pool.getTokenAddress());
 
         payable(gnosisWallet).transfer(contractPrice - coinsToLP);
-        payable(address(pool)).transfer(coinsToLP);
+        payable(gnosisWallet).transfer(coinsToLP);
+        if (msg.value - contractPrice > 0) {
+            pool.buyToken{value: msg.value - contractPrice}(msg.sender);
+        }
 
-        return address(pool);
+        emit PoolCreated(address(pool));
+    }
+
+    function getOutputToken(
+        uint vtruAmount,
+        uint tokenSupply
+    ) external view returns (uint) {
+        return
+            PoolFormula.getAmountOut(
+                (vtruAmount * 99) / 100,
+                coinsToLP,
+                tokenSupply
+            );
+    }
+
+    function getOutputVTRU(
+        uint tokenAmount,
+        uint tokenSupply
+    ) external view returns (uint) {
+        return
+            (PoolFormula.getAmountOut(tokenAmount, tokenSupply, coinsToLP) *
+                99) / 100;
     }
 
     function setContractPrice(uint _price) public onlyOwner returns (bool) {
         require(_price > 0, "Too low price");
-        require(_price >= coinsToLP, "Contract price must be greater than amount VTRU to LP");
+        require(
+            _price >= coinsToLP,
+            "Contract price must be greater than amount VTRU to LP"
+        );
         contractPrice = _price;
         return true;
     }
 
     function setAmountToLP(uint _amount) public onlyOwner returns (bool) {
         require(_amount >= 0, "Too low amount");
-        require(_amount <= contractPrice, "VTRU to LP amount must be less than contract price");
+        require(
+            _amount <= contractPrice,
+            "VTRU to LP amount must be less than contract price"
+        );
         coinsToLP = _amount;
         return true;
     }

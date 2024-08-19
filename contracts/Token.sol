@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17.0;
+pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,7 +13,7 @@ contract Token is ERC20, Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image
-    ) Ownable(msg.sender) ERC20(_name, _ticker) {
+    ) ERC20(_name, _ticker) {
         require(bytes(_description).length <= 250, "Description too long");
         // Image file size is not feasible to check directly in smart contract; using string for URI
         // require(bytes(_image).length <= 250 * 1024 * 1024, "Image file size too large");

@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17.0;
+pragma solidity ^0.8.21;
 
-import { Ownable, Token } from "./Token.sol";
+import {Ownable, Token} from "./Token.sol";
+
+library PoolFormula {
+    function getAmountOut(
+        uint amountIn,
+        uint reserveIn,
+        uint reserveOut
+    ) internal pure returns (uint amountOut) {
+        uint numerator = amountIn * reserveOut;
+        uint denominator = reserveIn + amountIn;
+        amountOut = numerator / denominator;
+    }
+}
 
 contract LiquidityPool is Ownable {
     Token public token;
@@ -12,8 +24,8 @@ contract LiquidityPool is Ownable {
     address public immutable gammaWallet; // 2% bonding curve royal
     address public immutable deltaWallet; // 4% bonding curve royal
 
-    event TokenBought(address indexed buyer, uint256 vtruAmount, uint256 tokenAmount);
-    event TokenSold(address indexed seller, uint256 tokenAmount, uint256 vtruAmount);
+    event TokenBought(address indexed buyer, uint vtruAmount, uint tokenAmount);
+    event TokenSold(address indexed seller, uint tokenAmount, uint vtruAmount);
 
     constructor(
         string memory _name,
@@ -22,11 +34,11 @@ contract LiquidityPool is Ownable {
         string memory _image,
         uint _totalSupply,
         address _bankWallet,
-        address _airDropWallet, 
+        address _airDropWallet,
         address _feeWallet,
         address _gammaWallet,
         address _deltaWallet
-    ) Ownable(msg.sender) {
+    ) {
         token = new Token(_name, _ticker, _description, _image);
 
         bankWallet = _bankWallet;
@@ -39,45 +51,47 @@ contract LiquidityPool is Ownable {
         token.mint(_airDropWallet, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
         token.mint(_gammaWallet, getPercentOf(_totalSupply, 20000)); // 2% royalty for burn
         token.mint(_deltaWallet, getPercentOf(_totalSupply, 40000)); // 4% royalty for burn
-
         token.mint(address(this), getPercentOf(_totalSupply, 910000)); // 91% to LP
     }
 
-    function getPercentOf(uint _amount,  uint _percent) internal pure returns (uint) {
-        return _amount / 100_0000 * _percent;
+    function getPercentOf(
+        uint _amount,
+        uint _percent
+    ) internal pure returns (uint) {
+        return (_amount / 100_0000) * _percent;
     }
 
-    function buyToken() external payable {
+    function buyToken(address buyer) public payable {
         require(msg.value > 0, "Must provide VTRU to buy tokens");
-        
-        uint fee = msg.value / 100;
-        uint vtruAmountWithoutFee = msg.value - fee;
 
-        uint256 tokenAmount = calcOutputToken(vtruAmountWithoutFee);
-        
-        token.transfer(msg.sender, tokenAmount);
+        (uint tokenAmount, uint fee) = _calcOutputToken(msg.value);
+
+        token.transfer(buyer, tokenAmount);
 
         transferFees(fee);
-        
-        emit TokenBought(msg.sender, vtruAmountWithoutFee, tokenAmount);
+
+        emit TokenBought(buyer, msg.value - fee, tokenAmount);
     }
-    
+
+    function buyToken() public payable {
+        buyToken(msg.sender);
+    }
+
     // Before this need to call tokens approve
-    function sellToken(uint256 tokenAmount) external {
+    function sellToken(uint tokenAmount) external {
         require(tokenAmount > 0, "Must provide tokens to sell");
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= tokenAmount, "Check the token allowance");
 
-        uint256 vtruAmount = calcOutputVtru(tokenAmount);
-       
-        uint fee = vtruAmount / 100;
+        (uint vtruAmount, uint fee) = _calcOutputVtru(tokenAmount);
+
         uint vtruAmountAfterFee = vtruAmount - fee;
-        
+
         token.transferFrom(msg.sender, address(this), tokenAmount);
         payable(msg.sender).transfer(vtruAmountAfterFee);
 
         transferFees(fee);
-        
+
         emit TokenSold(msg.sender, tokenAmount, vtruAmountAfterFee);
     }
 
@@ -87,31 +101,54 @@ contract LiquidityPool is Ownable {
         return true;
     }
 
-    function calcOutputVtru(uint _tokenAmount) view public returns (uint) {
-        uint vtruBalance = getVtruBalance();
-        uint tokenReserve = getTokenBalance() + _tokenAmount;
-
-        return ((vtruBalance / (tokenReserve / _tokenAmount)) * 99) / 100;
+    function _calcOutputVtru(
+        uint _tokenAmount
+    ) private view returns (uint outAmount, uint fee) {
+        outAmount = PoolFormula.getAmountOut(
+            _tokenAmount,
+            getTokenBalance(),
+            getVtruBalance()
+        );
+        fee = outAmount / 100;
     }
 
-    function calcOutputToken(uint _vtruAmount) view public returns (uint) {
-        uint tokenBalance = getTokenBalance();
-        uint vtruReserve = getVtruBalance() + _vtruAmount;
-
-        return ((tokenBalance / (vtruReserve / _vtruAmount)) * 99) / 100;
+    function calcOutputVtru(uint _tokenAmount) public view returns (uint) {
+        (uint outVtru, uint fee) = _calcOutputVtru(_tokenAmount);
+        return outVtru - fee;
     }
 
-    receive() external payable { }
+    function _calcOutputToken(
+        uint _vtruAmount
+    ) private view returns (uint outAmount, uint fee) {
+        fee = _vtruAmount / 100;
+        outAmount = PoolFormula.getAmountOut(
+            _vtruAmount - fee,
+            getVtruBalance() - _vtruAmount,
+            getTokenBalance()
+        );
+    }
+
+    function calcOutputToken(uint _vtruAmount) public view returns (uint) {
+        uint fee = _vtruAmount / 100;
+        return
+            PoolFormula.getAmountOut(
+                _vtruAmount - fee,
+                getVtruBalance(),
+                getTokenBalance()
+            );
+    }
+
+    receive() external payable {}
 
     function getTokenAddress() public view returns (address) {
         return address(token);
     }
-    
-    function getVtruBalance() public view returns (uint256) {
+
+    function getVtruBalance() public view returns (uint) {
         return address(this).balance;
     }
-    
-    function getTokenBalance() public view returns (uint256) {
+
+    function getTokenBalance() public view returns (uint) {
         return token.balanceOf(address(this));
     }
 }
