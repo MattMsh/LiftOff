@@ -73,7 +73,7 @@ contract LiquidityPool is Ownable {
         emit TokenBought(buyer, msg.value - fee, tokenAmount);
     }
 
-    function buyToken() public payable {
+    function buyToken() external payable {
         buyToken(msg.sender);
     }
 

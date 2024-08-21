@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {PoolFormula, LiquidityPool, Ownable} from "./LiquidityPool.sol";
+import {PoolFormula, LiquidityPool, Token, Ownable} from "./LiquidityPool.sol";
+import {ERC20} from "./Token.sol";
 
 contract PoolFactory is Ownable {
     uint public contractPrice;
@@ -14,11 +15,12 @@ contract PoolFactory is Ownable {
     address public immutable gammaWallet;
     address public immutable deltaWallet;
 
-    uint public constant MIN_SUPPLY = 1_000_000;
+    uint public constant MIN_SUPPLY = 1_000_000 * 1e18;
 
     mapping(address => address[]) private userTokens;
 
     event PoolCreated(address pool);
+    event TransferedVTRU(address indexed to, uint amount);
 
     constructor(
         address _walletToReceiveFee,
@@ -67,21 +69,29 @@ contract PoolFactory is Ownable {
             deltaWallet
         );
 
+        emit PoolCreated(address(pool));
+
         userTokens[msg.sender].push(pool.getTokenAddress());
 
-        payable(gnosisWallet).transfer(contractPrice - coinsToLP);
-        payable(gnosisWallet).transfer(coinsToLP);
-        if (msg.value - contractPrice > 0) {
-            pool.buyToken{value: msg.value - contractPrice}(msg.sender);
-        }
+        // (bool sentToGnosis, ) = payable(gnosisWallet).call{
+        //     value: contractPrice - coinsToLP
+        // }("");
+        // emit TransferedVTRU(gnosisWallet, contractPrice - coinsToLP);
+        // (bool sentToPool, ) = payable(address(pool)).call{value: coinsToLP}("");
+        // emit TransferedVTRU(gnosisWallet, coinsToLP);
+        // require(sentToGnosis, "Failed send to Gnosis 1");
+        // require(sentToPool, "Failed send to pool");
 
-        emit PoolCreated(address(pool));
+        // uint amountToBuyTokens = msg.value - contractPrice;
+        // if (amountToBuyTokens > 10000) {
+        //     pool.buyToken{value: amountToBuyTokens}(msg.sender);
+        // }
     }
 
     function getOutputToken(
         uint vtruAmount,
         uint tokenSupply
-    ) external view returns (uint) {
+    ) public view returns (uint) {
         return
             PoolFormula.getAmountOut(
                 (vtruAmount * 99) / 100,

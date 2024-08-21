@@ -1,7 +1,4 @@
-import { ethers, web3 } from "hardhat";
-
-const localAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-// const ownerAddress = "0x650f14051E298EDC44dD7260f0E1d2a652457059";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const poolFactoryData = {
   deployFeeWallet: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -10,16 +7,11 @@ const poolFactoryData = {
   transactionFeeWallet: "0x5dE8857A7b3798E8e42F30712E4b40b0f42fDC75",
   gammaBurnWallet: "0xbC4627a3C967Db501c6Ae23698941373a4277187",
   deltaBurnWallet: "0xD26811AE946542D377ddFbBBC50ecED25c550686",
-  contractPrice: ethers.parseEther("0.1"),
-  vtruToLP: ethers.parseEther("0.05"),
+  contractPrice: BigInt("100000000000000000"),
+  vtruToLP: BigInt("50000000000000000"),
 };
 
-async function main() {
-  const owner = await ethers.getSigner(localAddress);
-  // console.log(await web3.eth.getNodeInfo());
-  const PoolFactory = await ethers.getContractFactory("PoolFactory", owner);
-  // console.log(PoolFactory);
-
+const PoolFactoryModule = buildModule("PoolFactoryModule", (m) => {
   const {
     deployFeeWallet,
     bankWallet,
@@ -30,7 +22,7 @@ async function main() {
     contractPrice,
     vtruToLP,
   } = poolFactoryData;
-  const poolFactory = await PoolFactory.deploy(
+  const token = m.contract("PoolFactory", [
     deployFeeWallet,
     contractPrice,
     vtruToLP,
@@ -39,15 +31,9 @@ async function main() {
     transactionFeeWallet,
     gammaBurnWallet,
     deltaBurnWallet,
-    {
-      // gasPrice: 4,
-      gasLimit: 3000000,
-    }
-  );
-  console.log(poolFactory);
+  ]);
 
-  await poolFactory.waitForDeployment();
-  console.log("PoolFactory deployed to:", await poolFactory.getAddress());
-}
+  return { token };
+});
 
-main();
+module.exports = PoolFactoryModule;
