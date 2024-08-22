@@ -18,8 +18,9 @@ contract PoolFactory is Ownable {
     uint public constant MIN_SUPPLY = 1_000_000 * 1e18;
 
     mapping(address => address[]) private userTokens;
+    address[] private tokens;
 
-    event PoolCreated(address pool);
+    event PoolCreated(address pool, address token);
     event TransferedVTRU(address indexed to, uint amount);
 
     constructor(
@@ -69,23 +70,32 @@ contract PoolFactory is Ownable {
             deltaWallet
         );
 
-        emit PoolCreated(address(pool));
+        address tokenAddress = pool.getTokenAddress();
+        address poolAddress = address(pool);
 
-        userTokens[msg.sender].push(pool.getTokenAddress());
+        emit PoolCreated(poolAddress, tokenAddress);
+        userTokens[msg.sender].push(tokenAddress);
+        tokens.push(tokenAddress);
 
-        // (bool sentToGnosis, ) = payable(gnosisWallet).call{
-        //     value: contractPrice - coinsToLP
-        // }("");
-        // emit TransferedVTRU(gnosisWallet, contractPrice - coinsToLP);
-        // (bool sentToPool, ) = payable(address(pool)).call{value: coinsToLP}("");
-        // emit TransferedVTRU(gnosisWallet, coinsToLP);
-        // require(sentToGnosis, "Failed send to Gnosis 1");
-        // require(sentToPool, "Failed send to pool");
+        sendToGnosis(contractPrice - coinsToLP);
+        sendToPool(poolAddress, coinsToLP);
 
-        // uint amountToBuyTokens = msg.value - contractPrice;
-        // if (amountToBuyTokens > 10000) {
-        //     pool.buyToken{value: amountToBuyTokens}(msg.sender);
-        // }
+        uint amountToBuyTokens = msg.value - contractPrice;
+        if (amountToBuyTokens > 10000) {
+            pool.buyToken{value: amountToBuyTokens}(msg.sender);
+        }
+    }
+
+    function sendToPool(address pool, uint amount) private {
+        (bool sent, ) = payable(pool).call{value: amount}("");
+        require(sent, "Failed send to pool");
+        emit TransferedVTRU(pool, amount);
+    }
+
+    function sendToGnosis(uint amount) private {
+        (bool sent, ) = payable(gnosisWallet).call{value: amount}("");
+        require(sent, "Failed send to Gnosis 1");
+        emit TransferedVTRU(gnosisWallet, amount);
     }
 
     function getOutputToken(
@@ -127,6 +137,10 @@ contract PoolFactory is Ownable {
         );
         coinsToLP = _amount;
         return true;
+    }
+
+    function getAllTokens() external view returns (address[] memory) {
+        return tokens;
     }
 
     function getUserTokens(
