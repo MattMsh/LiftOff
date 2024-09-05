@@ -14,15 +14,15 @@ contract Token is ERC20, Ownable {
         string memory _description,
         string memory _image
     ) Ownable(msg.sender) ERC20(_name, _ticker) {
-        require(bytes(_description).length <= 250, "Description too long");
-        // Image file size is not feasible to check directly in smart contract; using string for URI
-        // require(bytes(_image).length <= 250 * 1024 * 1024, "Image file size too large");
-
         description = _description;
         image = _image;
     }
 
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
+    }
+
+    function burn(uint256 _amount) public {
+        _burn(msg.sender, _amount);
     }
 }

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {Ownable, Token} from "./Token.sol";
+import {Ownable, Token, IERC20} from "./Token.sol";
+import {PoolDeployer, PoolFactory} from "./PoolFactory.sol";
+import "./wVTRU/wVTRU.sol";
 
 library PoolFormula {
     function getAmountOut(
@@ -15,14 +17,44 @@ library PoolFormula {
     }
 }
 
+interface IPancakeFactory {
+    event PairCreated(
+        address indexed token0,
+        address indexed token1,
+        address pair,
+        uint
+    );
+
+    function feeTo() external view returns (address);
+    function feeToSetter() external view returns (address);
+
+    function getPair(
+        address tokenA,
+        address tokenB
+    ) external view returns (address pair);
+    function allPairs(uint) external view returns (address pair);
+    function allPairsLength() external view returns (uint);
+
+    function createPair(
+        address tokenA,
+        address tokenB
+    ) external returns (address pair);
+
+    function setFeeTo(address) external;
+    function setFeeToSetter(address) external;
+}
+
+interface IVTROSwapPair {
+    function sync() external;
+}
+
 contract LiquidityPool is Ownable {
-    Token public token;
+    Token public immutable token;
+    wVTRU public immutable wvtru;
+    address public immutable factory;
 
     address public immutable bankWallet; // 73% fee +  1.4211% royal
-    address public immutable feeWallet; // 27% fee
-    address public immutable airDropWallet; // 1.5789% royal
-    address public immutable gammaWallet; // 2% bonding curve royal
-    address public immutable deltaWallet; // 4% bonding curve royal
+    address public immutable vibeWallet; // 27% fee
 
     event TokenBought(address indexed buyer, uint vtruAmount, uint tokenAmount);
     event TokenSold(address indexed seller, uint tokenAmount, uint vtruAmount);
@@ -32,26 +64,41 @@ contract LiquidityPool is Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint _totalSupply,
-        address _bankWallet,
-        address _airDropWallet,
-        address _feeWallet,
-        address _gammaWallet,
-        address _deltaWallet
-    ) Ownable(msg.sender) {
+        uint _totalSupply
+    ) Ownable(PoolFactory(msg.sender).owner()) {
+        factory = msg.sender;
+
         token = new Token(_name, _ticker, _description, _image);
+        wvtru = wVTRU(PoolFactory(factory).WVTRU());
+
+        (
+            _bankWallet,
+            _airDropWallet,
+            _feeWallet,
+            _gammaCurve,
+            _deltaCurve
+        ) = PoolDeployer(factory).parameters();
 
         bankWallet = _bankWallet;
-        airDropWallet = _airDropWallet;
-        feeWallet = _feeWallet;
-        gammaWallet = _gammaWallet;
-        deltaWallet = _deltaWallet;
+        vibeWallet = _feeWallet;
 
-        token.mint(_bankWallet, getPercentOf(_totalSupply, 14211)); // 1.4211% royalty
-        token.mint(_airDropWallet, getPercentOf(_totalSupply, 15789)); // 1.5789% royalty
-        token.mint(_gammaWallet, getPercentOf(_totalSupply, 20000)); // 2% royalty for burn
-        token.mint(_deltaWallet, getPercentOf(_totalSupply, 40000)); // 4% royalty for burn
-        token.mint(address(this), getPercentOf(_totalSupply, 910000)); // 91% to LP
+        token.mint(_bankWallet, getPercentOf(_totalSupply, 1_4211)); // 1.4211% royalty
+        token.mint(_airDropWallet, getPercentOf(_totalSupply, 1_5789)); // 1.5789% royalty
+        token.mint(_gammaCurve, getPercentOf(_totalSupply, 2_0000)); // 2% royalty for burn
+        token.mint(_deltaCurve, getPercentOf(_totalSupply, 4_0000)); // 4% royalty for burn
+        token.mint(address(this), getPercentOf(_totalSupply, 91_0000)); // 91% to LP
+    }
+
+    function transferToNewPool() external onlyOwner {
+        token.burn(token.balanceOf(address(this)) / 2);
+        address pair = IPancakeFactory(
+            0x12a3E5Da7F742789F7e8d3E95Cc5E62277dC3372
+        ).createPair(address(wvtru), address(token));
+
+        token.transfer(pair, token.balanceOf(getTokenBalance()));
+        wvtru.transfer(pair, wvtru.balanceOf(getWVtruBalance()));
+
+        IVTROSwapPair(pair).sync();
     }
 
     function getPercentOf(
@@ -61,43 +108,52 @@ contract LiquidityPool is Ownable {
         return (_amount / 100_0000) * _percent;
     }
 
-    function buyToken(address buyer) public payable {
-        require(msg.value > 0, "Must provide VTRU to buy tokens");
+    function buyToken(address from, address to, uint amount) internal {
+        require(amount > 0, "must provide wvtru to buy tokens");
+        require(
+            wvtru.allowance(from, address(this)) >= amount,
+            "check allowance"
+        );
 
-        (uint tokenAmount, uint fee) = _calcOutputToken(msg.value);
+        (uint tokenAmount, uint fee) = _calcOutputToken(amount);
 
-        token.transfer(buyer, tokenAmount);
+        wvtru.transferFrom(from, address(this), amount);
+        token.transfer(to, tokenAmount);
 
         transferFees(fee);
 
-        emit TokenBought(buyer, msg.value - fee, tokenAmount);
+        emit TokenBought(to, amount - fee, tokenAmount);
     }
 
-    function buyToken() external payable {
-        buyToken(msg.sender);
+    function buyToken(uint amount) external {
+        buyToken(msg.sender, msg.sender, amount);
     }
 
-    // Before this need to call tokens approve
-    function sellToken(uint tokenAmount) external {
-        require(tokenAmount > 0, "Must provide tokens to sell");
-        uint256 allowance = token.allowance(msg.sender, address(this));
-        require(allowance >= tokenAmount, "Check the token allowance");
+    function sellToken(uint amount) external {
+        require(amount > 0, "must provide tokens to sell");
+        require(
+            token.allowance(msg.sender, address(this)) >= amount,
+            "check allowance"
+        );
 
-        (uint vtruAmount, uint fee) = _calcOutputVtru(tokenAmount);
+        (uint vtruAmount, uint fee) = _calcOutputVtru(amount);
 
         uint vtruAmountAfterFee = vtruAmount - fee;
 
-        token.transferFrom(msg.sender, address(this), tokenAmount);
-        payable(msg.sender).transfer(vtruAmountAfterFee);
+        token.transferFrom(msg.sender, address(this), amount);
+        wvtru.transfer(msg.sender, vtruAmountAfterFee);
 
         transferFees(fee);
 
-        emit TokenSold(msg.sender, tokenAmount, vtruAmountAfterFee);
+        emit TokenSold(msg.sender, amount, vtruAmountAfterFee);
     }
 
     function transferFees(uint _amount) private returns (bool) {
-        payable(bankWallet).transfer(getPercentOf(_amount, 730000));
-        payable(feeWallet).transfer(getPercentOf(_amount, 270000));
+        wvtru.transfer(bankWallet, getPercentOf(_amount, 73_0000));
+        uint vtruToVibe = getPercentOf(_amount, 27_0000);
+        wvtru.unwrap(vtruToVibe);
+        (bool success, ) = feeWallet.call{value: vtruToVibe}("");
+        require(success, "transfer vtru failed");
         return true;
     }
 
@@ -107,7 +163,7 @@ contract LiquidityPool is Ownable {
         outAmount = PoolFormula.getAmountOut(
             _tokenAmount,
             getTokenBalance(),
-            getVtruBalance()
+            getWVtruBalance()
         );
         fee = outAmount / 100;
     }
@@ -123,7 +179,7 @@ contract LiquidityPool is Ownable {
         fee = _vtruAmount / 100;
         outAmount = PoolFormula.getAmountOut(
             _vtruAmount - fee,
-            getVtruBalance() - _vtruAmount,
+            getWVtruBalance(),
             getTokenBalance()
         );
     }
@@ -133,22 +189,20 @@ contract LiquidityPool is Ownable {
         return
             PoolFormula.getAmountOut(
                 _vtruAmount - fee,
-                getVtruBalance(),
+                getWVtruBalance(),
                 getTokenBalance()
             );
     }
 
-    receive() external payable {}
-
-    function getTokenAddress() public view returns (address) {
+    function getTokenAddress() internal view returns (address) {
         return address(token);
     }
 
-    function getVtruBalance() public view returns (uint) {
-        return address(this).balance;
+    function getWVtruBalance() private view returns (uint) {
+        return wvtru.balanceOf(address(this));
     }
 
-    function getTokenBalance() public view returns (uint) {
+    function getTokenBalance() private view returns (uint) {
         return token.balanceOf(address(this));
     }
 }

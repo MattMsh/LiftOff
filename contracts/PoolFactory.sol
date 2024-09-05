@@ -2,19 +2,36 @@
 pragma solidity ^0.8.21;
 
 import {PoolFormula, LiquidityPool, Token, Ownable} from "./LiquidityPool.sol";
-import {ERC20} from "./Token.sol";
+import {IERC20} from "./Token.sol";
 
-contract PoolFactory is Ownable {
+struct Parameters {
+    address bankWallet;
+    address airDropWallet;
+    address feeWallet;
+    address gammaCurve;
+    address deltaCurve;
+}
+
+interface PoolDeployer {
+    function parameters()
+        external
+        view
+        returns (
+            address bankWallet,
+            address airDropWallet,
+            address feeWallet,
+            address gammaCurve,
+            address deltaCurve
+        );
+}
+
+contract PoolFactory is Ownable, PoolDeployer {
     uint public contractPrice;
     uint public coinsToLP;
-
-    address public immutable gnosisWallet;
-    address public immutable bankWallet;
-    address public immutable airDropWallet;
-    address public immutable feeWallet;
-    address public immutable gammaWallet;
-    address public immutable deltaWallet;
-
+    address public immutable creationFeeWallet;
+    address private constant WVTRU = 0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d;
+    IERC20 private immutable wvtru;
+    Parameters public override parameters;
     uint public constant MIN_SUPPLY = 1_000_000 * 1e18;
 
     mapping(address => address[]) private userTokens;
@@ -24,7 +41,7 @@ contract PoolFactory is Ownable {
     event TransferedVTRU(address indexed to, uint amount);
 
     constructor(
-        address _walletToReceiveFee,
+        address _creationFeeWallet,
         uint _contractPrice,
         uint _coinsToLP,
         address _bankWallet,
@@ -37,14 +54,17 @@ contract PoolFactory is Ownable {
             _contractPrice >= _coinsToLP,
             "VTRU to LP amount must be less than contract price"
         );
-        gnosisWallet = _walletToReceiveFee;
+        wvtru = IERC20(WVTRU);
+        parameters = Parameters({
+            bankWallet: _bankWallet,
+            airDropWallet: _airDropWallet,
+            feeWallet: _feeWallet,
+            gammaCurve: _gammaWallet,
+            deltaCurve: _deltaWallet
+        });
+        creationFeeWallet = _creationFeeWallet;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
-        bankWallet = _bankWallet;
-        airDropWallet = _airDropWallet;
-        feeWallet = _feeWallet;
-        gammaWallet = _gammaWallet;
-        deltaWallet = _deltaWallet;
     }
 
     function createPoolWithToken(
@@ -52,9 +72,13 @@ contract PoolFactory is Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint _amount
-    ) public payable {
-        require(msg.value >= contractPrice, "Not enough value");
+        uint _amount,
+        uint _value
+    ) public {
+        uint256 allowance = wvtru.allowance(msg.sender, address(this));
+        require(allowance >= _value, "Check the token allowance");
+        wvtru.transferFrom(msg.sender, address(this), _value);
+
         require(_amount >= MIN_SUPPLY, "Too few tokens to create");
 
         LiquidityPool pool = new LiquidityPool(
@@ -62,12 +86,7 @@ contract PoolFactory is Ownable {
             _ticker,
             _description,
             _image,
-            _amount,
-            bankWallet,
-            airDropWallet,
-            feeWallet,
-            gammaWallet,
-            deltaWallet
+            _amount
         );
 
         address tokenAddress = pool.getTokenAddress();
@@ -77,25 +96,12 @@ contract PoolFactory is Ownable {
         userTokens[msg.sender].push(tokenAddress);
         tokens.push(tokenAddress);
 
-        sendToGnosis(contractPrice - coinsToLP);
-        sendToPool(poolAddress, coinsToLP);
+        wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
+        wvtru.transfer(poolAddress, coinsToLP);
 
-        uint amountToBuyTokens = msg.value - contractPrice;
-        if (amountToBuyTokens > 10000) {
-            pool.buyToken{value: amountToBuyTokens}(msg.sender);
-        }
-    }
-
-    function sendToPool(address pool, uint amount) private {
-        (bool sent, ) = payable(pool).call{value: amount}("");
-        require(sent, "Failed send to pool");
-        emit TransferedVTRU(pool, amount);
-    }
-
-    function sendToGnosis(uint amount) private {
-        (bool sent, ) = payable(gnosisWallet).call{value: amount}("");
-        require(sent, "Failed send to Gnosis 1");
-        emit TransferedVTRU(gnosisWallet, amount);
+        uint amountToBuyTokens = _value - contractPrice;
+        wvtru.approve(poolAddress, amountToBuyTokens);
+        pool.buyToken(address(this), msg.sender, amountToBuyTokens);
     }
 
     function getOutputToken(
