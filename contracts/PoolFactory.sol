@@ -1,44 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {PoolFormula, LiquidityPool, Token, Ownable} from "./LiquidityPool.sol";
-import {IERC20} from "./Token.sol";
+import {PoolFormula, LiquidityPool} from "./LiquidityPool.sol";
+import {IERC20, Token, Ownable} from "./Token.sol";
 
-struct Parameters {
+contract PoolFactory is Ownable {
+    uint public contractPrice;
+    uint public coinsToLP;
     address bankWallet;
     address airDropWallet;
     address feeWallet;
     address gammaCurve;
     address deltaCurve;
-}
-
-interface PoolDeployer {
-    function parameters()
-        external
-        view
-        returns (
-            address bankWallet,
-            address airDropWallet,
-            address feeWallet,
-            address gammaCurve,
-            address deltaCurve
-        );
-}
-
-contract PoolFactory is Ownable, PoolDeployer {
-    uint public contractPrice;
-    uint public coinsToLP;
     address public immutable creationFeeWallet;
-    address private constant WVTRU = 0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d;
+    address public constant WVTRU = 0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d;
     IERC20 private immutable wvtru;
-    Parameters public override parameters;
     uint public constant MIN_SUPPLY = 1_000_000 * 1e18;
 
     mapping(address => address[]) private userTokens;
     address[] private tokens;
 
     event PoolCreated(address pool, address token);
-    event TransferedVTRU(address indexed to, uint amount);
 
     constructor(
         address _creationFeeWallet,
@@ -55,13 +37,11 @@ contract PoolFactory is Ownable, PoolDeployer {
             "VTRU to LP amount must be less than contract price"
         );
         wvtru = IERC20(WVTRU);
-        parameters = Parameters({
-            bankWallet: _bankWallet,
-            airDropWallet: _airDropWallet,
-            feeWallet: _feeWallet,
-            gammaCurve: _gammaWallet,
-            deltaCurve: _deltaWallet
-        });
+        bankWallet = _bankWallet;
+        airDropWallet = _airDropWallet;
+        feeWallet = _feeWallet;
+        gammaCurve = _gammaWallet;
+        deltaCurve = _deltaWallet;
         creationFeeWallet = _creationFeeWallet;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
@@ -89,19 +69,27 @@ contract PoolFactory is Ownable, PoolDeployer {
             _amount
         );
 
-        address tokenAddress = pool.getTokenAddress();
+        address tokenAddress = address(pool.token());
         address poolAddress = address(pool);
+        wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
+        wvtru.transfer(poolAddress, coinsToLP);
 
-        emit PoolCreated(poolAddress, tokenAddress);
         userTokens[msg.sender].push(tokenAddress);
         tokens.push(tokenAddress);
 
-        wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
-        wvtru.transfer(poolAddress, coinsToLP);
+        emit PoolCreated(poolAddress, tokenAddress);
 
         uint amountToBuyTokens = _value - contractPrice;
         wvtru.approve(poolAddress, amountToBuyTokens);
         pool.buyToken(address(this), msg.sender, amountToBuyTokens);
+    }
+
+    function getWallets()
+        public
+        view
+        returns (address, address, address, address, address)
+    {
+        return (bankWallet, airDropWallet, feeWallet, gammaCurve, deltaCurve);
     }
 
     function getOutputToken(

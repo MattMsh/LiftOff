@@ -2,46 +2,44 @@
 pragma solidity ^0.8.21;
 
 import {Ownable, Token, IERC20} from "./Token.sol";
-import {PoolDeployer, PoolFactory} from "./PoolFactory.sol";
-import "./wVTRU/wVTRU.sol";
 
 library PoolFormula {
     function getAmountOut(
-        uint amountIn,
-        uint reserveIn,
-        uint reserveOut
-    ) internal pure returns (uint amountOut) {
-        uint numerator = amountIn * reserveOut;
-        uint denominator = reserveIn + amountIn;
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountOut) {
+        uint256 numerator = amountIn * reserveOut;
+        uint256 denominator = reserveIn + amountIn;
         amountOut = numerator / denominator;
     }
 }
 
+interface PoolFactory {
+    function owner() external returns (address);
+
+    function WVTRU() external returns (address);
+
+    function getWallets()
+        external
+        view
+        returns (
+            address,
+            address,
+            address,
+            address,
+            address
+        );
+}
+
+interface wVTRU is IERC20 {
+    function unwrap(uint256 amount) external;
+}
+
 interface IPancakeFactory {
-    event PairCreated(
-        address indexed token0,
-        address indexed token1,
-        address pair,
-        uint
-    );
-
-    function feeTo() external view returns (address);
-    function feeToSetter() external view returns (address);
-
-    function getPair(
-        address tokenA,
-        address tokenB
-    ) external view returns (address pair);
-    function allPairs(uint) external view returns (address pair);
-    function allPairsLength() external view returns (uint);
-
-    function createPair(
-        address tokenA,
-        address tokenB
-    ) external returns (address pair);
-
-    function setFeeTo(address) external;
-    function setFeeToSetter(address) external;
+    function createPair(address tokenA, address tokenB)
+        external
+        returns (address pair);
 }
 
 interface IVTROSwapPair {
@@ -56,15 +54,23 @@ contract LiquidityPool is Ownable {
     address public immutable bankWallet; // 73% fee +  1.4211% royal
     address public immutable vibeWallet; // 27% fee
 
-    event TokenBought(address indexed buyer, uint vtruAmount, uint tokenAmount);
-    event TokenSold(address indexed seller, uint tokenAmount, uint vtruAmount);
+    event TokenBought(
+        address indexed buyer,
+        uint256 vtruAmount,
+        uint256 tokenAmount
+    );
+    event TokenSold(
+        address indexed seller,
+        uint256 tokenAmount,
+        uint256 vtruAmount
+    );
 
     constructor(
         string memory _name,
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint _totalSupply
+        uint256 _totalSupply
     ) Ownable(PoolFactory(msg.sender).owner()) {
         factory = msg.sender;
 
@@ -72,12 +78,12 @@ contract LiquidityPool is Ownable {
         wvtru = wVTRU(PoolFactory(factory).WVTRU());
 
         (
-            _bankWallet,
-            _airDropWallet,
-            _feeWallet,
-            _gammaCurve,
-            _deltaCurve
-        ) = PoolDeployer(factory).parameters();
+            address _bankWallet,
+            address _feeWallet,
+            address _airDropWallet,
+            address _gammaCurve,
+            address _deltaCurve
+        ) = PoolFactory(factory).getWallets();
 
         bankWallet = _bankWallet;
         vibeWallet = _feeWallet;
@@ -95,27 +101,32 @@ contract LiquidityPool is Ownable {
             0x12a3E5Da7F742789F7e8d3E95Cc5E62277dC3372
         ).createPair(address(wvtru), address(token));
 
-        token.transfer(pair, token.balanceOf(getTokenBalance()));
-        wvtru.transfer(pair, wvtru.balanceOf(getWVtruBalance()));
+        token.transfer(pair, getTokenBalance());
+        wvtru.transfer(pair, getWVtruBalance());
 
         IVTROSwapPair(pair).sync();
     }
 
-    function getPercentOf(
-        uint _amount,
-        uint _percent
-    ) internal pure returns (uint) {
+    function getPercentOf(uint256 _amount, uint256 _percent)
+        internal
+        pure
+        returns (uint256)
+    {
         return (_amount / 100_0000) * _percent;
     }
 
-    function buyToken(address from, address to, uint amount) internal {
+    function buyToken(
+        address from,
+        address to,
+        uint256 amount
+    ) public {
         require(amount > 0, "must provide wvtru to buy tokens");
         require(
             wvtru.allowance(from, address(this)) >= amount,
             "check allowance"
         );
 
-        (uint tokenAmount, uint fee) = _calcOutputToken(amount);
+        (uint256 tokenAmount, uint256 fee) = _calcOutputToken(amount);
 
         wvtru.transferFrom(from, address(this), amount);
         token.transfer(to, tokenAmount);
@@ -125,20 +136,20 @@ contract LiquidityPool is Ownable {
         emit TokenBought(to, amount - fee, tokenAmount);
     }
 
-    function buyToken(uint amount) external {
+    function buyToken(uint256 amount) external {
         buyToken(msg.sender, msg.sender, amount);
     }
 
-    function sellToken(uint amount) external {
+    function sellToken(uint256 amount) external {
         require(amount > 0, "must provide tokens to sell");
         require(
             token.allowance(msg.sender, address(this)) >= amount,
             "check allowance"
         );
 
-        (uint vtruAmount, uint fee) = _calcOutputVtru(amount);
+        (uint256 vtruAmount, uint256 fee) = _calcOutputVtru(amount);
 
-        uint vtruAmountAfterFee = vtruAmount - fee;
+        uint256 vtruAmountAfterFee = vtruAmount - fee;
 
         token.transferFrom(msg.sender, address(this), amount);
         wvtru.transfer(msg.sender, vtruAmountAfterFee);
@@ -148,18 +159,20 @@ contract LiquidityPool is Ownable {
         emit TokenSold(msg.sender, amount, vtruAmountAfterFee);
     }
 
-    function transferFees(uint _amount) private returns (bool) {
+    function transferFees(uint256 _amount) private returns (bool) {
         wvtru.transfer(bankWallet, getPercentOf(_amount, 73_0000));
-        uint vtruToVibe = getPercentOf(_amount, 27_0000);
+        uint256 vtruToVibe = getPercentOf(_amount, 27_0000);
         wvtru.unwrap(vtruToVibe);
-        (bool success, ) = feeWallet.call{value: vtruToVibe}("");
+        (bool success, ) = vibeWallet.call{value: vtruToVibe}("");
         require(success, "transfer vtru failed");
         return true;
     }
 
-    function _calcOutputVtru(
-        uint _tokenAmount
-    ) private view returns (uint outAmount, uint fee) {
+    function _calcOutputVtru(uint256 _tokenAmount)
+        private
+        view
+        returns (uint256 outAmount, uint256 fee)
+    {
         outAmount = PoolFormula.getAmountOut(
             _tokenAmount,
             getTokenBalance(),
@@ -168,14 +181,20 @@ contract LiquidityPool is Ownable {
         fee = outAmount / 100;
     }
 
-    function calcOutputVtru(uint _tokenAmount) public view returns (uint) {
-        (uint outVtru, uint fee) = _calcOutputVtru(_tokenAmount);
+    function calcOutputVtru(uint256 _tokenAmount)
+        public
+        view
+        returns (uint256)
+    {
+        (uint256 outVtru, uint256 fee) = _calcOutputVtru(_tokenAmount);
         return outVtru - fee;
     }
 
-    function _calcOutputToken(
-        uint _vtruAmount
-    ) private view returns (uint outAmount, uint fee) {
+    function _calcOutputToken(uint256 _vtruAmount)
+        private
+        view
+        returns (uint256 outAmount, uint256 fee)
+    {
         fee = _vtruAmount / 100;
         outAmount = PoolFormula.getAmountOut(
             _vtruAmount - fee,
@@ -184,8 +203,12 @@ contract LiquidityPool is Ownable {
         );
     }
 
-    function calcOutputToken(uint _vtruAmount) public view returns (uint) {
-        uint fee = _vtruAmount / 100;
+    function calcOutputToken(uint256 _vtruAmount)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 fee = _vtruAmount / 100;
         return
             PoolFormula.getAmountOut(
                 _vtruAmount - fee,
@@ -198,11 +221,11 @@ contract LiquidityPool is Ownable {
         return address(token);
     }
 
-    function getWVtruBalance() private view returns (uint) {
+    function getWVtruBalance() private view returns (uint256) {
         return wvtru.balanceOf(address(this));
     }
 
-    function getTokenBalance() private view returns (uint) {
+    function getTokenBalance() private view returns (uint256) {
         return token.balanceOf(address(this));
     }
 }
