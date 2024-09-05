@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {PoolFormula, LiquidityPool} from "./LiquidityPool.sol";
-import {IERC20, Token, Ownable} from "./Token.sol";
+import {PoolFormula, LiquidityPool, IERC20, Token, Ownable} from "./LiquidityPool.sol";
 
 contract PoolFactory is Ownable {
-    uint public contractPrice;
-    uint public coinsToLP;
-    address bankWallet;
-    address airDropWallet;
-    address feeWallet;
-    address gammaCurve;
-    address deltaCurve;
-    address public immutable creationFeeWallet;
+    uint256 public contractPrice;
+    uint256 public coinsToLP;
+    address public bankWallet;
+    address public airDropWallet;
+    address public feeWallet;
+    address public gammaCurve;
+    address public deltaCurve;
+    address public creationFeeWallet;
     address public constant WVTRU = 0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d;
-    IERC20 private immutable wvtru;
-    uint public constant MIN_SUPPLY = 1_000_000 * 1e18;
+    IERC20 public wvtru;
+
+    uint256 public constant MIN_SUPPLY = 1_000_000 * 1e18;
 
     mapping(address => address[]) private userTokens;
     address[] private tokens;
@@ -23,9 +23,9 @@ contract PoolFactory is Ownable {
     event PoolCreated(address pool, address token);
 
     constructor(
+        uint128 _contractPrice,
+        uint128 _coinsToLP,
         address _creationFeeWallet,
-        uint _contractPrice,
-        uint _coinsToLP,
         address _bankWallet,
         address _airDropWallet,
         address _feeWallet,
@@ -52,14 +52,14 @@ contract PoolFactory is Ownable {
         string memory _ticker,
         string memory _description,
         string memory _image,
-        uint _amount,
-        uint _value
+        uint256 _amount,
+        uint256 _value
     ) public {
         uint256 allowance = wvtru.allowance(msg.sender, address(this));
-        require(allowance >= _value, "Check the token allowance");
+        require(allowance >= _value, "check the token allowance");
         wvtru.transferFrom(msg.sender, address(this), _value);
 
-        require(_amount >= MIN_SUPPLY, "Too few tokens to create");
+        require(_amount >= MIN_SUPPLY, "too few tokens to create");
 
         LiquidityPool pool = new LiquidityPool(
             _name,
@@ -69,7 +69,7 @@ contract PoolFactory is Ownable {
             _amount
         );
 
-        address tokenAddress = address(pool.token());
+        address tokenAddress = pool.getTokenAddress();
         address poolAddress = address(pool);
         wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
         wvtru.transfer(poolAddress, coinsToLP);
@@ -79,7 +79,7 @@ contract PoolFactory is Ownable {
 
         emit PoolCreated(poolAddress, tokenAddress);
 
-        uint amountToBuyTokens = _value - contractPrice;
+        uint256 amountToBuyTokens = _value - contractPrice;
         wvtru.approve(poolAddress, amountToBuyTokens);
         pool.buyToken(address(this), msg.sender, amountToBuyTokens);
     }
@@ -87,15 +87,22 @@ contract PoolFactory is Ownable {
     function getWallets()
         public
         view
-        returns (address, address, address, address, address)
+        returns (
+            address,
+            address,
+            address,
+            address,
+            address
+        )
     {
         return (bankWallet, airDropWallet, feeWallet, gammaCurve, deltaCurve);
     }
 
-    function getOutputToken(
-        uint vtruAmount,
-        uint tokenSupply
-    ) public view returns (uint) {
+    function getOutputToken(uint256 vtruAmount, uint256 tokenSupply)
+        public
+        view
+        returns (uint256)
+    {
         return
             PoolFormula.getAmountOut(
                 (vtruAmount * 99) / 100,
@@ -104,31 +111,26 @@ contract PoolFactory is Ownable {
             );
     }
 
-    function getOutputVTRU(
-        uint tokenAmount,
-        uint tokenSupply
-    ) external view returns (uint) {
+    function getOutputVTRU(uint256 tokenAmount, uint256 tokenSupply)
+        external
+        view
+        returns (uint256)
+    {
         return
             (PoolFormula.getAmountOut(tokenAmount, tokenSupply, coinsToLP) *
                 99) / 100;
     }
 
-    function setContractPrice(uint _price) public onlyOwner returns (bool) {
-        require(_price > 0, "Too low price");
-        require(
-            _price >= coinsToLP,
-            "Contract price must be greater than amount VTRU to LP"
-        );
+    function setContractPrice(uint256 _price) public onlyOwner returns (bool) {
+        require(_price > 0, "too low price");
+        require(_price >= coinsToLP, "contract price must be greater");
         contractPrice = _price;
         return true;
     }
 
-    function setAmountToLP(uint _amount) public onlyOwner returns (bool) {
-        require(_amount >= 0, "Too low amount");
-        require(
-            _amount <= contractPrice,
-            "VTRU to LP amount must be less than contract price"
-        );
+    function setAmountToLP(uint256 _amount) public onlyOwner returns (bool) {
+        require(_amount >= 0, "too low amount");
+        require(_amount <= contractPrice, "vtru to lp amount must be less");
         coinsToLP = _amount;
         return true;
     }
@@ -137,9 +139,11 @@ contract PoolFactory is Ownable {
         return tokens;
     }
 
-    function getUserTokens(
-        address _user
-    ) public view returns (address[] memory) {
+    function getUserTokens(address _user)
+        public
+        view
+        returns (address[] memory)
+    {
         return userTokens[_user];
     }
 }

@@ -217,7 +217,7 @@ contract LiquidityPool is Ownable {
             );
     }
 
-    function getTokenAddress() internal view returns (address) {
+    function getTokenAddress() public view returns (address) {
         return address(token);
     }
 
