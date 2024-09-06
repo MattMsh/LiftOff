@@ -12,7 +12,7 @@ contract PoolFactory is Ownable {
     address public gammaCurve;
     address public deltaCurve;
     address public creationFeeWallet;
-    address public constant WVTRU = 0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d;
+    address public constant WVTRU = 0x3ccc3F22462cAe34766820894D04a40381201ef9;
     IERC20 public wvtru;
 
     uint256 public constant MIN_SUPPLY = 1_000_000 * 1e18;
@@ -23,8 +23,8 @@ contract PoolFactory is Ownable {
     event PoolCreated(address pool, address token);
 
     constructor(
-        uint128 _contractPrice,
-        uint128 _coinsToLP,
+        uint256 _contractPrice,
+        uint256 _coinsToLP,
         address _creationFeeWallet,
         address _bankWallet,
         address _airDropWallet,
@@ -80,8 +80,10 @@ contract PoolFactory is Ownable {
         emit PoolCreated(poolAddress, tokenAddress);
 
         uint256 amountToBuyTokens = _value - contractPrice;
-        wvtru.approve(poolAddress, amountToBuyTokens);
-        pool.buyToken(address(this), msg.sender, amountToBuyTokens);
+        if (amountToBuyTokens > 0) {
+            wvtru.approve(poolAddress, amountToBuyTokens);
+            pool.buyToken(address(this), msg.sender, amountToBuyTokens);
+        }
     }
 
     function getWallets()

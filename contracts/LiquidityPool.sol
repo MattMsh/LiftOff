@@ -15,7 +15,7 @@ library PoolFormula {
     }
 }
 
-interface PoolFactory {
+interface IPoolFactory {
     function owner() external returns (address);
 
     function WVTRU() external returns (address);
@@ -64,6 +64,7 @@ contract LiquidityPool is Ownable {
         uint256 tokenAmount,
         uint256 vtruAmount
     );
+    event PoolTransfered(address pair);
 
     constructor(
         string memory _name,
@@ -71,19 +72,19 @@ contract LiquidityPool is Ownable {
         string memory _description,
         string memory _image,
         uint256 _totalSupply
-    ) Ownable(PoolFactory(msg.sender).owner()) {
+    ) Ownable(IPoolFactory(msg.sender).owner()) {
         factory = msg.sender;
 
         token = new Token(_name, _ticker, _description, _image);
-        wvtru = wVTRU(PoolFactory(factory).WVTRU());
+        wvtru = wVTRU(IPoolFactory(factory).WVTRU());
 
         (
             address _bankWallet,
-            address _feeWallet,
             address _airDropWallet,
+            address _feeWallet,
             address _gammaCurve,
             address _deltaCurve
-        ) = PoolFactory(factory).getWallets();
+        ) = IPoolFactory(factory).getWallets();
 
         bankWallet = _bankWallet;
         vibeWallet = _feeWallet;
@@ -96,15 +97,17 @@ contract LiquidityPool is Ownable {
     }
 
     function transferToNewPool() external onlyOwner {
-        token.burn(token.balanceOf(address(this)) / 2);
         address pair = IPancakeFactory(
             0x12a3E5Da7F742789F7e8d3E95Cc5E62277dC3372
         ).createPair(address(wvtru), address(token));
 
+        token.burn(token.balanceOf(address(this)) / 2);
         token.transfer(pair, getTokenBalance());
         wvtru.transfer(pair, getWVtruBalance());
 
         IVTROSwapPair(pair).sync();
+
+        emit PoolTransfered(pair);
     }
 
     function getPercentOf(uint256 _amount, uint256 _percent)
@@ -228,4 +231,6 @@ contract LiquidityPool is Ownable {
     function getTokenBalance() private view returns (uint256) {
         return token.balanceOf(address(this));
     }
+
+    receive() external payable {}
 }
