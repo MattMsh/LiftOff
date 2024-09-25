@@ -18,7 +18,7 @@ library PoolFormula {
 interface IPoolFactory {
     function owner() external returns (address);
 
-    function WVTRU() external returns (address);
+    function wvtru() external returns (address);
 
     function getWallets()
         external
@@ -76,7 +76,7 @@ contract LiquidityPool is Ownable {
         factory = msg.sender;
 
         token = new Token(_name, _ticker, _description, _image);
-        wvtru = wVTRU(IPoolFactory(factory).WVTRU());
+        wvtru = wVTRU(IPoolFactory(factory).wvtru());
 
         (
             address _bankWallet,

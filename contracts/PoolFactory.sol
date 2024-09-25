@@ -12,10 +12,9 @@ contract PoolFactory is Ownable {
     address public gammaCurve;
     address public deltaCurve;
     address public creationFeeWallet;
-    address public constant WVTRU = 0x3ccc3F22462cAe34766820894D04a40381201ef9;
-    IERC20 public wvtru;
+    IERC20 public wvtru = IERC20(0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d);
 
-    uint256 public constant MIN_SUPPLY = 1_000_000 * 1e18;
+    uint128 public constant MIN_SUPPLY = 1_000_000;
 
     mapping(address => address[]) private userTokens;
     address[] private tokens;
@@ -36,7 +35,6 @@ contract PoolFactory is Ownable {
             _contractPrice >= _coinsToLP,
             "VTRU to LP amount must be less than contract price"
         );
-        wvtru = IERC20(WVTRU);
         bankWallet = _bankWallet;
         airDropWallet = _airDropWallet;
         feeWallet = _feeWallet;
@@ -59,7 +57,7 @@ contract PoolFactory is Ownable {
         require(allowance >= _value, "check the token allowance");
         wvtru.transferFrom(msg.sender, address(this), _value);
 
-        require(_amount >= MIN_SUPPLY, "too few tokens to create");
+        require(_amount >= MIN_SUPPLY * 1e18, "too few tokens to create");
 
         LiquidityPool pool = new LiquidityPool(
             _name,
