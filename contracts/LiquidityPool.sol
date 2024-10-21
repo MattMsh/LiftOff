@@ -34,6 +34,7 @@ interface IPoolFactory {
 
 interface wVTRU is IERC20 {
     function unwrap(uint256 amount) external;
+    function wrap() external;
 }
 
 interface IPancakeFactory {
@@ -50,6 +51,11 @@ contract LiquidityPool is Ownable {
     Token public immutable token;
     wVTRU public immutable wvtru;
     address public immutable factory;
+
+    uint256 private virtualCoinBalance;
+    uint256 private realCoinBalance;
+
+    uint256 private realTokenBalance;
 
     address public immutable bankWallet; // 73% fee +  1.4211% royal
     address public immutable vibeWallet; // 27% fee
@@ -89,11 +95,16 @@ contract LiquidityPool is Ownable {
         bankWallet = _bankWallet;
         vibeWallet = _feeWallet;
 
+        realCoinBalance = wvtru.balanceOf(address(this));
+        virtualCoinBalance = 5000 ether; // ~1084$
+
         token.mint(_bankWallet, getPercentOf(_totalSupply, 1_4211)); // 1.4211% royalty
         token.mint(_airDropWallet, getPercentOf(_totalSupply, 1_5789)); // 1.5789% royalty
         token.mint(_gammaCurve, getPercentOf(_totalSupply, 2_0000)); // 2% royalty for burn
         token.mint(_deltaCurve, getPercentOf(_totalSupply, 4_0000)); // 4% royalty for burn
-        token.mint(address(this), getPercentOf(_totalSupply, 91_0000)); // 91% to LP
+        
+        realTokenBalance = getPercentOf(_totalSupply, 91_0000);
+        token.mint(address(this), realTokenBalance); // 91% to LP
     }
 
     function transferToNewPool() external onlyOwner {
@@ -101,7 +112,7 @@ contract LiquidityPool is Ownable {
             0x12a3E5Da7F742789F7e8d3E95Cc5E62277dC3372
         ).createPair(address(wvtru), address(token));
 
-        token.burn(token.balanceOf(address(this)) / 2);
+        token.burn((token.balanceOf(address(this)) / 75) * 100);
         token.transfer(pair, getTokenBalance());
         wvtru.transfer(pair, getWVtruBalance());
 
@@ -166,6 +177,9 @@ contract LiquidityPool is Ownable {
         wvtru.transfer(bankWallet, getPercentOf(_amount, 73_0000));
         uint256 vtruToVibe = getPercentOf(_amount, 27_0000);
         wvtru.unwrap(vtruToVibe);
+        if (address(this).balance < vtruToVibe) {
+            vtruToVibe = address(this).balance;
+        }
         (bool success, ) = vibeWallet.call{value: vtruToVibe}("");
         require(success, "transfer vtru failed");
         return true;
@@ -225,7 +239,7 @@ contract LiquidityPool is Ownable {
     }
 
     function getWVtruBalance() private view returns (uint256) {
-        return wvtru.balanceOf(address(this));
+        return realCoinBalance + virtualCoinBalance;
     }
 
     function getTokenBalance() private view returns (uint256) {

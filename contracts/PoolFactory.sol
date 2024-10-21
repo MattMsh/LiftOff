@@ -14,9 +14,10 @@ contract PoolFactory is Ownable {
     address public creationFeeWallet;
     IERC20 public wvtru = IERC20(0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d);
 
-    uint128 public constant MIN_SUPPLY = 1_000_000;
+    uint public constant MIN_SUPPLY = 1_000_000;
 
     mapping(address => address[]) private userTokens;
+    mapping(address => mapping(address => address)) private pools;
     address[] private tokens;
 
     event PoolCreated(address pool, address token);
@@ -69,6 +70,7 @@ contract PoolFactory is Ownable {
 
         address tokenAddress = pool.getTokenAddress();
         address poolAddress = address(pool);
+        pools[address(wvtru)][tokenAddress] = poolAddress;
         wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
         wvtru.transfer(poolAddress, coinsToLP);
 
@@ -98,27 +100,22 @@ contract PoolFactory is Ownable {
         return (bankWallet, airDropWallet, feeWallet, gammaCurve, deltaCurve);
     }
 
-    function getOutputToken(uint256 vtruAmount, uint256 tokenSupply)
+    function tokensForWvtru(uint256 wvtruAmount, uint256 tokenSupply)
         public
         view
-        returns (uint256)
+        returns (uint256 amount, uint256 fee)
     {
-        return
-            PoolFormula.getAmountOut(
-                (vtruAmount * 99) / 100,
-                coinsToLP,
-                tokenSupply
-            );
+        amount = wvtruAmount * (tokenSupply * 91 / 100) / (coinsToLP  + wvtruAmount);
+        fee = wvtruAmount * 99 / 100;
     }
 
-    function getOutputVTRU(uint256 tokenAmount, uint256 tokenSupply)
+    function wvtruForTokens(uint256 tokenAmount, uint256 tokenSupply)
         external
         view
-        returns (uint256)
+        returns (uint256 amount, uint256 fee)
     {
-        return
-            (PoolFormula.getAmountOut(tokenAmount, tokenSupply, coinsToLP) *
-                99) / 100;
+        amount = tokenAmount * coinsToLP / ((tokenSupply * 91 / 100) - tokenAmount);
+        fee = amount * 99 / 100;
     }
 
     function setContractPrice(uint256 _price) public onlyOwner returns (bool) {
@@ -135,7 +132,7 @@ contract PoolFactory is Ownable {
         return true;
     }
 
-    function getAllTokens() external view returns (address[] memory) {
+    function getAllTokens() public view returns (address[] memory)  {
         return tokens;
     }
 
@@ -145,5 +142,9 @@ contract PoolFactory is Ownable {
         returns (address[] memory)
     {
         return userTokens[_user];
+    }
+
+    function getPool(address tokenAddress) public view returns (address) {
+        return pools[address(wvtru)][tokenAddress];
     }
 }
