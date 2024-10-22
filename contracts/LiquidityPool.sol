@@ -31,10 +31,13 @@ interface IPoolFactory {
         external
         view
         returns (address, address, address, address, address);
+
+    function virtualCoinBalance() external view returns (uint);
 }
 
 interface wVTRU is IERC20 {
     function unwrap(uint256 amount) external;
+
     function wrap() external;
 }
 
@@ -54,10 +57,10 @@ contract LiquidityPool is Ownable {
     wVTRU public immutable wvtru;
     address public immutable factory;
 
-    uint256 private virtualCoinBalance;
-    uint256 private realCoinBalance;
+    uint256 public virtualCoinBalance;
+    uint256 public realCoinBalance;
 
-    uint256 private realTokenBalance;
+    uint256 public realTokenBalance;
 
     address public bankWallet; // 73% fee +  1.4211% royal
     address public vibeWallet; // 27% fee
@@ -122,7 +125,7 @@ contract LiquidityPool is Ownable {
             PoolFormula.getPercentOf(_totalSupply, 91_0000)
         ); // 91% to LP
 
-        virtualCoinBalance = 5000 ether; // ~1084$
+        virtualCoinBalance = IPoolFactory(factory).virtualCoinBalance(); // ~1084$
         _updateReserves();
 
         return (address(token), address(this));

@@ -5,7 +5,6 @@ import {PoolFormula, LiquidityPool, IERC20, Token, Ownable} from "./LiquidityPoo
 
 contract PoolFactory is Ownable {
     uint256 public contractPrice;
-    uint256 public coinsToLP;
     address public bankWallet;
     address public airDropWallet;
     address public feeWallet;
@@ -15,6 +14,7 @@ contract PoolFactory is Ownable {
     IERC20 public wvtru;
 
     uint public constant MIN_SUPPLY = 1_000_000;
+    uint public virtualCoinBalance = 5000 ether;
 
     mapping(address => address[]) private userTokens;
     mapping(address => address) private pools;
@@ -24,7 +24,6 @@ contract PoolFactory is Ownable {
 
     constructor(
         uint256 _contractPrice,
-        uint256 _coinsToLP,
         address _creationFeeWallet,
         address _bankWallet,
         address _airDropWallet,
@@ -33,10 +32,6 @@ contract PoolFactory is Ownable {
         address _deltaWallet,
         address _wvtruAddress
     ) Ownable(msg.sender) {
-        require(
-            _contractPrice >= _coinsToLP,
-            "VTRU to LP amount must be less than contract price"
-        );
         bankWallet = _bankWallet;
         airDropWallet = _airDropWallet;
         feeWallet = _feeWallet;
@@ -44,7 +39,6 @@ contract PoolFactory is Ownable {
         deltaCurve = _deltaWallet;
         creationFeeWallet = _creationFeeWallet;
         contractPrice = _contractPrice;
-        coinsToLP = _coinsToLP;
         wvtru = IERC20(_wvtruAddress);
     }
 
@@ -63,10 +57,15 @@ contract PoolFactory is Ownable {
         require(_amount >= MIN_SUPPLY * 1e18, "too few tokens to create");
 
         LiquidityPool pool = new LiquidityPool();
-        (address tokenAddress, address poolAddress) = pool.initialize(_name, _ticker, _description, _image, _amount);
+        (address tokenAddress, address poolAddress) = pool.initialize(
+            _name,
+            _ticker,
+            _description,
+            _image,
+            _amount
+        );
         pools[tokenAddress] = poolAddress;
-        wvtru.transfer(creationFeeWallet, contractPrice - coinsToLP);
-        wvtru.transfer(poolAddress, coinsToLP);
+        wvtru.transfer(creationFeeWallet, contractPrice);
 
         userTokens[msg.sender].push(tokenAddress);
         tokens.push(tokenAddress);
@@ -94,10 +93,11 @@ contract PoolFactory is Ownable {
         uint256 wvtruAmount,
         uint256 tokenSupply
     ) public view returns (uint256 amount, uint256 fee) {
+        amount = (wvtruAmount * 99) / 100;
         amount =
-            (wvtruAmount * ((tokenSupply * 91) / 100)) /
-            (coinsToLP + wvtruAmount);
-        fee = (wvtruAmount * 99) / 100;
+            (amount * ((tokenSupply * 91) / 100)) /
+            (virtualCoinBalance + amount);
+        fee = wvtruAmount / 100;
     }
 
     function wvtruForTokens(
@@ -105,22 +105,15 @@ contract PoolFactory is Ownable {
         uint256 tokenSupply
     ) external view returns (uint256 amount, uint256 fee) {
         amount =
-            (tokenAmount * coinsToLP) /
+            (tokenAmount * virtualCoinBalance) /
             (((tokenSupply * 91) / 100) - tokenAmount);
-        fee = (amount * 99) / 100;
+        fee = amount / 100;
+        amount = (amount * 99) / 100;
     }
 
     function setContractPrice(uint256 _price) public onlyOwner returns (bool) {
         require(_price > 0, "too low price");
-        require(_price >= coinsToLP, "contract price must be greater");
         contractPrice = _price;
-        return true;
-    }
-
-    function setAmountToLP(uint256 _amount) public onlyOwner returns (bool) {
-        require(_amount >= 0, "too low amount");
-        require(_amount <= contractPrice, "vtru to lp amount must be less");
-        coinsToLP = _amount;
         return true;
     }
 
