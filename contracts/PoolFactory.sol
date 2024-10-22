@@ -12,7 +12,7 @@ contract PoolFactory is Ownable {
     address public gammaCurve;
     address public deltaCurve;
     address public creationFeeWallet;
-    IERC20 public wvtru = IERC20(0xC0C0A38067Ba977676AB4aFD9834dB030901bE2d);
+    IERC20 public wvtru;
 
     uint public constant MIN_SUPPLY = 1_000_000;
 
@@ -30,7 +30,8 @@ contract PoolFactory is Ownable {
         address _airDropWallet,
         address _feeWallet,
         address _gammaWallet,
-        address _deltaWallet
+        address _deltaWallet,
+        address _wvtruAddress
     ) Ownable(msg.sender) {
         require(
             _contractPrice >= _coinsToLP,
@@ -44,6 +45,7 @@ contract PoolFactory is Ownable {
         creationFeeWallet = _creationFeeWallet;
         contractPrice = _contractPrice;
         coinsToLP = _coinsToLP;
+        wvtru = IERC20(_wvtruAddress);
     }
 
     function createPoolWithToken(
@@ -53,7 +55,7 @@ contract PoolFactory is Ownable {
         string memory _image,
         uint256 _amount,
         uint256 _value
-    ) public {
+    ) public returns (address, address) {
         uint256 allowance = wvtru.allowance(msg.sender, address(this));
         require(allowance >= _value, "check the token allowance");
         wvtru.transferFrom(msg.sender, address(this), _value);
@@ -76,6 +78,8 @@ contract PoolFactory is Ownable {
             wvtru.approve(poolAddress, amountToBuyTokens);
             pool.buyToken(address(this), msg.sender, amountToBuyTokens);
         }
+
+        return (poolAddress, tokenAddress);
     }
 
     function getWallets()
