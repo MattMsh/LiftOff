@@ -8,12 +8,10 @@ contract Token is ERC20, Ownable {
     string public description;
     string public image;
 
-    constructor(
-        string memory _name,
-        string memory _ticker,
-        string memory _description,
-        string memory _image
-    ) Ownable(msg.sender) ERC20(_name, _ticker) {
+    constructor(string memory _name, string memory _ticker, string memory _description, string memory _image)
+        Ownable(msg.sender)
+        ERC20(_name, _ticker)
+    {
         description = _description;
         image = _image;
     }

@@ -27,9 +27,9 @@ contract Token_ERC20 is MockERC20, TestBase {
 contract PoolFactoryTest is Test {
     PoolFactory public factory;
 
-    uint priceContract = 1 ether;
+    uint256 priceContract = 1 ether;
 
-    uint constant TOKEN_SUPPLY = 1_000_000 ether;
+    uint256 constant TOKEN_SUPPLY = 1_000_000 ether;
 
     address _creationFeeWallet = address(1);
     address _bankWallet = address(2);
@@ -54,16 +54,13 @@ contract PoolFactoryTest is Test {
     }
 
     function test_CalculateTokensForWVTRU() public view {
-        (uint amount, ) = factory.tokensForWvtru(1 ether, TOKEN_SUPPLY);
+        (uint256 amount,) = factory.tokensForWvtru(1 ether, TOKEN_SUPPLY);
 
         assertEq(amount, 180144331422378369082);
     }
 
     function test_CalculateWVTRUForTokens() public view {
-        (uint amount, ) = factory.wvtruForTokens(
-            181963607278544291144,
-            TOKEN_SUPPLY
-        );
+        (uint256 amount,) = factory.wvtruForTokens(181963607278544291144, TOKEN_SUPPLY);
 
         assertEq(amount, 0.99 ether);
     }
@@ -71,54 +68,33 @@ contract PoolFactoryTest is Test {
     function test_CreatePool() public {
         mockWvtru.mint(address(this), priceContract);
         IERC20(address(mockWvtru)).approve(address(factory), priceContract);
-        (address poolAddress, address tokenAddress) = factory
-            .createPoolWithToken(
-                "TKN",
-                "TKN",
-                "TKN",
-                "url",
-                TOKEN_SUPPLY,
-                priceContract
-            );
+        (address poolAddress, address tokenAddress) =
+            factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, priceContract);
 
         assertTrue(poolAddress != address(0));
         assertTrue(tokenAddress != address(0));
     }
 
     function test_CreatePoolAndPrebuy() public {
-        uint wvtruToBuy = 1 ether;
-        uint amount = priceContract + wvtruToBuy;
+        uint256 wvtruToBuy = 1 ether;
+        uint256 amount = priceContract + wvtruToBuy;
         mockWvtru.mint(address(this), amount);
         IERC20(address(mockWvtru)).approve(address(factory), amount);
-        (, address tokenAddress) = factory.createPoolWithToken(
-            "TKN",
-            "TKN",
-            "TKN",
-            "url",
-            TOKEN_SUPPLY,
-            amount
-        );
+        (, address tokenAddress) = factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, amount);
 
-        uint balance = IERC20(tokenAddress).balanceOf(address(this));
-        (uint amountToken, ) = factory.tokensForWvtru(wvtruToBuy, TOKEN_SUPPLY);
+        uint256 balance = IERC20(tokenAddress).balanceOf(address(this));
+        (uint256 amountToken,) = factory.tokensForWvtru(wvtruToBuy, TOKEN_SUPPLY);
 
         assertEq(balance, amountToken);
     }
 
     function test_BuyToken() public {
-        uint amountToBuy = 1 ether;
-        uint amount = priceContract;
+        uint256 amountToBuy = 1 ether;
+        uint256 amount = priceContract;
         mockWvtru.mint(address(this), amount + amountToBuy);
         IERC20(address(mockWvtru)).approve(address(factory), amount);
-        (address poolAddress, address tokenAddress) = factory
-            .createPoolWithToken(
-                "TKN",
-                "TKN",
-                "TKN",
-                "url",
-                TOKEN_SUPPLY,
-                amount
-            );
+        (address poolAddress, address tokenAddress) =
+            factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, amount);
 
         LiquidityPool pool = LiquidityPool(payable(poolAddress));
         Token token = Token(tokenAddress);
@@ -126,30 +102,20 @@ contract PoolFactoryTest is Test {
         IERC20(address(mockWvtru)).approve(address(poolAddress), amountToBuy);
 
         pool.buyToken(amountToBuy);
-        uint balance = token.balanceOf(address(this));
+        uint256 balance = token.balanceOf(address(this));
 
-        (uint expectedBalance, ) = factory.tokensForWvtru(
-            amountToBuy,
-            TOKEN_SUPPLY
-        );
+        (uint256 expectedBalance,) = factory.tokensForWvtru(amountToBuy, TOKEN_SUPPLY);
 
         assertEq(balance, expectedBalance);
     }
 
     function test_SellToken() public {
-        uint amountToBuy = 1 ether;
-        uint amount = priceContract;
+        uint256 amountToBuy = 1 ether;
+        uint256 amount = priceContract;
         mockWvtru.mint(address(this), amount + amountToBuy);
         IERC20(address(mockWvtru)).approve(address(factory), amount);
-        (address poolAddress, address tokenAddress) = factory
-            .createPoolWithToken(
-                "TKN",
-                "TKN",
-                "TKN",
-                "url",
-                TOKEN_SUPPLY,
-                amount
-            );
+        (address poolAddress, address tokenAddress) =
+            factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, amount);
 
         LiquidityPool pool = LiquidityPool(payable(poolAddress));
         Token token = Token(tokenAddress);
@@ -158,16 +124,13 @@ contract PoolFactoryTest is Test {
 
         pool.buyToken(amountToBuy);
 
-        uint tokenBalance = token.balanceOf(address(this));
+        uint256 tokenBalance = token.balanceOf(address(this));
         IERC20(tokenAddress).approve(address(poolAddress), tokenBalance);
         pool.sellToken(tokenBalance);
 
-        (uint expectedBalance, ) = factory.wvtruForTokens(
-            tokenBalance,
-            TOKEN_SUPPLY
-        );
+        (uint256 expectedBalance,) = factory.wvtruForTokens(tokenBalance, TOKEN_SUPPLY);
 
-        uint balance = IERC20(address(mockWvtru)).balanceOf(address(this));
+        uint256 balance = IERC20(address(mockWvtru)).balanceOf(address(this));
 
         assertApproxEqAbs(balance, expectedBalance, 1);
     }
@@ -175,39 +138,24 @@ contract PoolFactoryTest is Test {
     function test_InitialMarketCap() public {
         mockWvtru.mint(address(this), priceContract);
         IERC20(address(mockWvtru)).approve(address(factory), priceContract);
-        (address poolAddress, ) = factory.createPoolWithToken(
-            "TKN",
-            "TKN",
-            "TKN",
-            "url",
-            TOKEN_SUPPLY,
-            priceContract
-        );
+        (address poolAddress,) = factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, priceContract);
 
         LiquidityPool pool = LiquidityPool(payable(poolAddress));
 
-        uint priceForToken = pool.calcOutputVtru(1 ether);
+        uint256 priceForToken = pool.calcOutputVtru(1 ether);
 
-        uint totalPriceForTokens = (pool.realTokenBalance() / 1 ether) *
-            priceForToken;
+        uint256 totalPriceForTokens = (pool.realTokenBalance() / 1 ether) * priceForToken;
 
         console.log(totalPriceForTokens);
         assertApproxEqAbs(totalPriceForTokens, 5000 ether, 100 ether);
     }
 
     function test_MarketCapAfterBuy() public {
-        uint amountToBuy = 100 ether;
-        uint amount = priceContract;
+        uint256 amountToBuy = 100 ether;
+        uint256 amount = priceContract;
         mockWvtru.mint(address(this), amount + amountToBuy);
         IERC20(address(mockWvtru)).approve(address(factory), amount);
-        (address poolAddress, ) = factory.createPoolWithToken(
-            "TKN",
-            "TKN",
-            "TKN",
-            "url",
-            TOKEN_SUPPLY,
-            amount
-        );
+        (address poolAddress,) = factory.createPoolWithToken("TKN", "TKN", "TKN", "url", TOKEN_SUPPLY, amount);
 
         LiquidityPool pool = LiquidityPool(payable(poolAddress));
 
@@ -215,10 +163,9 @@ contract PoolFactoryTest is Test {
 
         pool.buyToken(amountToBuy);
 
-        uint priceForToken = pool.calcOutputVtru(1 ether);
+        uint256 priceForToken = pool.calcOutputVtru(1 ether);
 
-        uint totalPriceForTokens = (pool.realTokenBalance() / 1 ether) *
-            priceForToken;
+        uint256 totalPriceForTokens = (pool.realTokenBalance() / 1 ether) * priceForToken;
 
         assertApproxEqAbs(totalPriceForTokens, 5000 ether, 100 ether);
     }
