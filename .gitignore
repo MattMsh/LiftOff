@@ -9,3 +9,6 @@ cache
 contracts/artifacts
 typechain-types
 ignition/deployments
+
+.DS_Store
+Flattened.sol
