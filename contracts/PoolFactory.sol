@@ -43,10 +43,9 @@ contract PoolFactory is Ownable {
     }
 
     function createPoolWithToken(
-        string memory _name,
-        string memory _ticker,
-        string memory _description,
-        string memory _image,
+        string calldata _name,
+        string calldata _ticker,
+        string calldata _uri,
         uint256 _amount,
         uint256 _value
     ) public returns (address, address) {
@@ -57,7 +56,12 @@ contract PoolFactory is Ownable {
         require(_amount >= MIN_SUPPLY * 1e18, "too few tokens to create");
 
         LiquidityPool pool = new LiquidityPool();
-        (address tokenAddress, address poolAddress) = pool.initialize(_name, _ticker, _description, _image, _amount);
+        (address tokenAddress, address poolAddress) = pool.initialize(
+            _name,
+            _ticker,
+            _uri,
+            _amount
+        );
         pools[tokenAddress] = poolAddress;
         wvtru.transfer(creationFeeWallet, contractPrice);
 
@@ -75,26 +79,32 @@ contract PoolFactory is Ownable {
         return (poolAddress, tokenAddress);
     }
 
-    function getWallets() public view returns (address, address, address, address, address) {
+    function getWallets()
+        public
+        view
+        returns (address, address, address, address, address)
+    {
         return (bankWallet, airDropWallet, feeWallet, gammaCurve, deltaCurve);
     }
 
-    function tokensForWvtru(uint256 wvtruAmount, uint256 tokenSupply)
-        public
-        view
-        returns (uint256 amount, uint256 fee)
-    {
+    function tokensForWvtru(
+        uint256 wvtruAmount,
+        uint256 tokenSupply
+    ) public view returns (uint256 amount, uint256 fee) {
         amount = (wvtruAmount * 99) / 100;
-        amount = (amount * ((tokenSupply * 91) / 100)) / (virtualCoinBalance + amount);
+        amount =
+            (amount * ((tokenSupply * 91) / 100)) /
+            (virtualCoinBalance + amount);
         fee = wvtruAmount / 100;
     }
 
-    function wvtruForTokens(uint256 tokenAmount, uint256 tokenSupply)
-        external
-        view
-        returns (uint256 amount, uint256 fee)
-    {
-        amount = (tokenAmount * virtualCoinBalance) / (((tokenSupply * 91) / 100) - tokenAmount);
+    function wvtruForTokens(
+        uint256 tokenAmount,
+        uint256 tokenSupply
+    ) external view returns (uint256 amount, uint256 fee) {
+        amount =
+            (tokenAmount * virtualCoinBalance) /
+            (((tokenSupply * 91) / 100) - tokenAmount);
         fee = amount / 100;
         amount = (amount * 99) / 100;
     }
@@ -109,7 +119,9 @@ contract PoolFactory is Ownable {
         return tokens;
     }
 
-    function getUserTokens(address _user) public view returns (address[] memory) {
+    function getUserTokens(
+        address _user
+    ) public view returns (address[] memory) {
         return userTokens[_user];
     }
 

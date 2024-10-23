@@ -5,15 +5,14 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Token is ERC20, Ownable {
-    string public description;
-    string public image;
+    string public publicUri;
 
-    constructor(string memory _name, string memory _ticker, string memory _description, string memory _image)
-        Ownable(msg.sender)
-        ERC20(_name, _ticker)
-    {
-        description = _description;
-        image = _image;
+    constructor(
+        string memory _name,
+        string memory _ticker,
+        string memory _publicUri
+    ) Ownable(msg.sender) ERC20(_name, _ticker) {
+        publicUri = _publicUri;
     }
 
     function mint(address _to, uint256 _amount) public onlyOwner {
