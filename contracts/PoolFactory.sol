@@ -20,7 +20,7 @@ contract PoolFactory is Ownable {
     mapping(address => address) private pools;
     address[] private tokens;
 
-    event PoolCreated(address pool, address token);
+    event PoolCreated(address indexed creator, address pool, address token);
 
     constructor(
         uint256 _contractPrice,
@@ -68,7 +68,7 @@ contract PoolFactory is Ownable {
         userTokens[msg.sender].push(tokenAddress);
         tokens.push(tokenAddress);
 
-        emit PoolCreated(poolAddress, tokenAddress);
+        emit PoolCreated(msg.sender, poolAddress, tokenAddress);
 
         uint256 amountToBuyTokens = _value - contractPrice;
         if (amountToBuyTokens > 0) {
