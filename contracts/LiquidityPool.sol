@@ -27,10 +27,7 @@ interface IPoolFactory {
 
     function wvtru() external returns (address);
 
-    function getWallets()
-        external
-        view
-        returns (address, address, address, address, address);
+    function getWallets() external view returns (address, address, address);
 
     function virtualCoinBalance() external view returns (uint256);
 }
@@ -105,24 +102,20 @@ contract LiquidityPool is Ownable {
         (
             address _bankWallet,
             address _airDropWallet,
-            address _feeWallet,
-            address _gammaCurve,
-            address _deltaCurve
+            address _feeWallet
         ) = IPoolFactory(factory).getWallets();
         bankWallet = _bankWallet;
         vibeWallet = _feeWallet;
 
-        token.mint(_bankWallet, PoolFormula.getPercentOf(_totalSupply, 1_4211)); // 1.4211% royalty
+        token.mint(_bankWallet, PoolFormula.getPercentOf(_totalSupply, 4211)); // 0.4211% royalty
         token.mint(
             _airDropWallet,
             PoolFormula.getPercentOf(_totalSupply, 1_5789)
         ); // 1.5789% royalty
-        token.mint(_gammaCurve, PoolFormula.getPercentOf(_totalSupply, 2_0000)); // 2% royalty for burn
-        token.mint(_deltaCurve, PoolFormula.getPercentOf(_totalSupply, 4_0000)); // 4% royalty for burn
         token.mint(
             address(this),
-            PoolFormula.getPercentOf(_totalSupply, 91_0000)
-        ); // 91% to LP
+            PoolFormula.getPercentOf(_totalSupply, 98_0000)
+        ); // 98% to LP
 
         virtualCoinBalance = IPoolFactory(factory).virtualCoinBalance(); // ~1084$
         _updateReserves();
@@ -137,10 +130,10 @@ contract LiquidityPool is Ownable {
 
         token.burn((realTokenBalance / 75) * 100);
 
-        _updateReserves();
-
-        token.transfer(pair, realTokenBalance);
+        token.transfer(pair, (realTokenBalance / 25) * 100);
         wvtru.transfer(pair, realCoinBalance);
+
+        _updateReserves();
 
         IVTROSwapPair(pair).sync();
 
@@ -240,13 +233,8 @@ contract LiquidityPool is Ownable {
     function calcOutputToken(
         uint256 _vtruAmount
     ) public view returns (uint256) {
-        uint256 fee = _vtruAmount / 100;
-        return
-            PoolFormula.getAmountOut(
-                _vtruAmount - fee,
-                getWVtruBalance(),
-                getTokenBalance()
-            );
+        (uint amount, ) = _calcOutputToken(_vtruAmount);
+        return amount;
     }
 
     function getTokenAddress() public view returns (address) {

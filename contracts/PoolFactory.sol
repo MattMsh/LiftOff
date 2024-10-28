@@ -28,15 +28,11 @@ contract PoolFactory is Ownable {
         address _bankWallet,
         address _airDropWallet,
         address _feeWallet,
-        address _gammaWallet,
-        address _deltaWallet,
         address _wvtruAddress
     ) Ownable(msg.sender) {
         bankWallet = _bankWallet;
         airDropWallet = _airDropWallet;
         feeWallet = _feeWallet;
-        gammaCurve = _gammaWallet;
-        deltaCurve = _deltaWallet;
         creationFeeWallet = _creationFeeWallet;
         contractPrice = _contractPrice;
         wvtru = IERC20(_wvtruAddress);
@@ -79,22 +75,22 @@ contract PoolFactory is Ownable {
         return (poolAddress, tokenAddress);
     }
 
-    function getWallets()
-        public
-        view
-        returns (address, address, address, address, address)
-    {
-        return (bankWallet, airDropWallet, feeWallet, gammaCurve, deltaCurve);
+    function getWallets() public view returns (address, address, address) {
+        return (bankWallet, airDropWallet, feeWallet);
     }
 
     function tokensForWvtru(
         uint256 wvtruAmount,
         uint256 tokenSupply
     ) public view returns (uint256 amount, uint256 fee) {
-        amount = (wvtruAmount * 99) / 100;
-        amount =
-            (amount * ((tokenSupply * 91) / 100)) /
-            (virtualCoinBalance + amount);
+        uint poolSupply = (tokenSupply * 98) / 100;
+
+        amount = PoolFormula.getAmountOut(
+            (wvtruAmount * 99) / 100,
+            virtualCoinBalance,
+            poolSupply
+        );
+
         fee = wvtruAmount / 100;
     }
 
@@ -102,11 +98,13 @@ contract PoolFactory is Ownable {
         uint256 tokenAmount,
         uint256 tokenSupply
     ) external view returns (uint256 amount, uint256 fee) {
+        uint poolSupply = (tokenSupply * 98) / 100;
         amount =
-            (tokenAmount * virtualCoinBalance) /
-            (((tokenSupply * 91) / 100) - tokenAmount);
-        fee = amount / 100;
-        amount = (amount * 99) / 100;
+            (((tokenAmount * 99) / 100) * virtualCoinBalance) /
+            (poolSupply - tokenAmount);
+        fee =
+            ((tokenAmount / 100) * virtualCoinBalance) /
+            (poolSupply - tokenAmount);
     }
 
     function setContractPrice(uint256 _price) public onlyOwner returns (bool) {

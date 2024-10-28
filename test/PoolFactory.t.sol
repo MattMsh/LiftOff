@@ -35,8 +35,6 @@ contract PoolFactoryTest is Test {
     address _bankWallet = address(2);
     address _airDropWallet = address(3);
     address _feeWallet = address(4);
-    address _gammaWallet = address(5);
-    address _deltaWallet = address(6);
     Token_ERC20 public mockWvtru;
 
     function setUp() public {
@@ -47,8 +45,6 @@ contract PoolFactoryTest is Test {
             _bankWallet,
             _airDropWallet,
             _feeWallet,
-            _gammaWallet,
-            _deltaWallet,
             address(mockWvtru)
         );
     }
@@ -56,16 +52,16 @@ contract PoolFactoryTest is Test {
     function test_CalculateTokensForWVTRU() public view {
         (uint256 amount, ) = factory.tokensForWvtru(1 ether, TOKEN_SUPPLY);
 
-        assertEq(amount, 180144331422378369082);
+        assertEq(amount, 194001587685638243627);
     }
 
     function test_CalculateWVTRUForTokens() public view {
-        (uint256 amount, ) = factory.wvtruForTokens(
-            181963607278544291144,
+        (uint amount, ) = factory.wvtruForTokens(
+            195960807838432313537,
             TOKEN_SUPPLY
         );
 
-        assertEq(amount, 0.99 ether);
+        assertApproxEqAbs(amount, 0.99 ether, 1);
     }
 
     function test_CreatePool() public {
@@ -80,6 +76,20 @@ contract PoolFactoryTest is Test {
                 priceContract
             );
 
+        IERC20 token = IERC20(tokenAddress);
+
+        assertEq(
+            token.balanceOf(_bankWallet),
+            (TOKEN_SUPPLY / 100_0000) * 4211
+        );
+        assertEq(
+            token.balanceOf(_airDropWallet),
+            (TOKEN_SUPPLY / 100_0000) * 1_5789
+        );
+        assertEq(
+            token.balanceOf(poolAddress),
+            (TOKEN_SUPPLY / 100_0000) * 98_0000
+        );
         assertTrue(poolAddress != address(0));
         assertTrue(tokenAddress != address(0));
     }
@@ -119,15 +129,18 @@ contract PoolFactoryTest is Test {
 
         IERC20(address(mockWvtru)).approve(address(poolAddress), amountToBuy);
 
-        pool.buyToken(amountToBuy);
-        uint256 balance = token.balanceOf(address(this));
-
         (uint256 expectedBalance, ) = factory.tokensForWvtru(
             amountToBuy,
             TOKEN_SUPPLY
         );
 
+        uint balanceFromPool = pool.calcOutputToken(amountToBuy);
+
+        pool.buyToken(amountToBuy);
+        uint256 balance = token.balanceOf(address(this));
+
         assertEq(balance, expectedBalance);
+        assertEq(balance, balanceFromPool);
     }
 
     function test_SellToken() public {
@@ -147,6 +160,8 @@ contract PoolFactoryTest is Test {
 
         uint256 tokenBalance = token.balanceOf(address(this));
         IERC20(tokenAddress).approve(address(poolAddress), tokenBalance);
+        uint balanceFromPool = pool.calcOutputVtru(tokenBalance);
+
         pool.sellToken(tokenBalance);
 
         (uint256 expectedBalance, ) = factory.wvtruForTokens(
@@ -157,6 +172,7 @@ contract PoolFactoryTest is Test {
         uint256 balance = IERC20(address(mockWvtru)).balanceOf(address(this));
 
         assertApproxEqAbs(balance, expectedBalance, 1);
+        assertEq(balance, balanceFromPool);
     }
 
     function test_InitialMarketCap() public {
@@ -204,6 +220,8 @@ contract PoolFactoryTest is Test {
 
         uint256 totalPriceForTokens = (pool.realTokenBalance() / 1 ether) *
             priceForToken;
+
+        console.log(totalPriceForTokens);
 
         assertApproxEqAbs(totalPriceForTokens, 5000 ether, 100 ether);
     }
