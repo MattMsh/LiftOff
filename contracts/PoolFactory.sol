@@ -8,8 +8,6 @@ contract PoolFactory is Ownable {
     address public bankWallet;
     address public airDropWallet;
     address public feeWallet;
-    address public gammaCurve;
-    address public deltaCurve;
     address public creationFeeWallet;
     IERC20 public wvtru;
 
