@@ -50,6 +50,10 @@ interface IVTROSwapPair {
 }
 
 contract LiquidityPool is Ownable {
+    enum ActionType {
+        BUY,
+        SELL
+    }
     Token public token;
     wVTRU public immutable wvtru;
     address public immutable factory;
@@ -65,16 +69,8 @@ contract LiquidityPool is Ownable {
     bool public initialized;
     bool private locked;
 
-    event TokenBought(
-        address indexed buyer,
-        uint256 vtruAmount,
-        uint256 tokenAmount
-    );
-    event TokenSold(
-        address indexed seller,
-        uint256 tokenAmount,
-        uint256 vtruAmount
-    );
+    event Action(address initiator, uint256 tokenAmount,
+        uint256 vtruAmount, ActionType);
     event PoolTransfered(address pair);
 
     modifier lock() {
@@ -161,7 +157,7 @@ contract LiquidityPool is Ownable {
 
         _updateReserves();
 
-        emit TokenBought(to, amount - fee, tokenAmount);
+        emit Action(to, amount - fee, tokenAmount, ActionType.BUY);
     }
 
     function buyToken(uint256 amount) external {
@@ -186,7 +182,7 @@ contract LiquidityPool is Ownable {
 
         _updateReserves();
 
-        emit TokenSold(msg.sender, amount, vtruAmountAfterFee);
+        emit Action(msg.sender, amount, vtruAmountAfterFee, ActionType.SELL);
     }
 
     function transferFees(uint256 _amount) private returns (bool) {
