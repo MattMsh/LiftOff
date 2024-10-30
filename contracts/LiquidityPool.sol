@@ -157,7 +157,7 @@ contract LiquidityPool is Ownable {
 
         _updateReserves();
 
-        emit Action(to, amount - fee, tokenAmount, ActionType.BUY);
+        emit Action(to, tokenAmount, amount - fee, ActionType.BUY);
     }
 
     function buyToken(uint256 amount) external {
