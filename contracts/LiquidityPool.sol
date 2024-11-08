@@ -70,7 +70,7 @@ contract LiquidityPool is Ownable {
     bool private locked;
 
     event Action(address indexed factory, address initiator, uint256 tokenAmount,
-        uint256 vtruAmount, ActionType);
+        uint256 vtruAmount, ActionType, string ticker);
     event PoolTransfered(address pair);
 
     modifier lock() {
@@ -157,7 +157,7 @@ contract LiquidityPool is Ownable {
 
         _updateReserves();
 
-        emit Action(factory, to, tokenAmount, amount - fee, ActionType.BUY);
+        emit Action(factory, to, tokenAmount, amount - fee, ActionType.BUY, token.symbol());
     }
 
     function buyToken(uint256 amount) external {
@@ -182,7 +182,7 @@ contract LiquidityPool is Ownable {
 
         _updateReserves();
 
-        emit Action(factory, msg.sender, amount, vtruAmountAfterFee, ActionType.SELL);
+        emit Action(factory, msg.sender, amount, vtruAmountAfterFee, ActionType.SELL, token.symbol());
     }
 
     function transferFees(uint256 _amount) private returns (bool) {
