@@ -31,16 +31,26 @@ contract PoolFactoryTest is Test {
 
     uint256 constant TOKEN_SUPPLY = 1_000_000 ether;
 
-    address _creationFeeWallet = address(1);
-    address _bankWallet = address(2);
-    address _airDropWallet = address(3);
-    address _feeWallet = address(4);
+    address creationFeeAddress = address(1);
+    address transactionFeeAddress = address(2);
+    address vibeAddress = address(3);
+    address vtruAirdropAddress = address(4);
+    address airDropAddress = address(5);
+    address dexAddress = address(6);
+
     Token_ERC20 public mockWvtru;
 
     function setUp() public {
         mockWvtru = new Token_ERC20("TKN", "TKN", 18);
         factory = new PoolFactory(
-            priceContract, _creationFeeWallet, _bankWallet, _airDropWallet, _feeWallet, address(mockWvtru)
+            priceContract,
+            creationFeeAddress,
+            transactionFeeAddress,
+            vibeAddress,
+            vtruAirdropAddress,
+            airDropAddress,
+            address(mockWvtru),
+            dexAddress
         );
     }
 
@@ -64,8 +74,8 @@ contract PoolFactoryTest is Test {
 
         IERC20 token = IERC20(tokenAddress);
 
-        assertEq(token.balanceOf(_bankWallet), (TOKEN_SUPPLY / 100_0000) * 4211);
-        assertEq(token.balanceOf(_airDropWallet), (TOKEN_SUPPLY / 100_0000) * 1_5789);
+        assertEq(token.balanceOf(factory.airDropAddress()), (TOKEN_SUPPLY / 100_0000) * 4211);
+        assertEq(token.balanceOf(factory.vtruAirdropAddress()), (TOKEN_SUPPLY / 100_0000) * 1_5789);
         assertEq(token.balanceOf(poolAddress), (TOKEN_SUPPLY / 100_0000) * 98_0000);
         assertTrue(poolAddress != address(0));
         assertTrue(tokenAddress != address(0));

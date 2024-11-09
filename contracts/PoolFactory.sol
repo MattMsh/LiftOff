@@ -5,10 +5,12 @@ import {PoolFormula, LiquidityPool, IERC20, Token, Ownable} from "./LiquidityPoo
 
 contract PoolFactory is Ownable {
     uint256 public contractPrice;
-    address public bankWallet;
-    address public airDropWallet;
-    address public feeWallet;
-    address public creationFeeWallet;
+    address public creationFeeAddress;
+    address public transactionFeeAddress;
+    address public vibeAddress;
+    address public vtruAirdropAddress;
+    address public airDropAddress;
+    address public dexAddress;
     IERC20 public wvtru;
 
     uint256 public constant MIN_SUPPLY = 1_000_000;
@@ -22,16 +24,20 @@ contract PoolFactory is Ownable {
 
     constructor(
         uint256 _contractPrice,
-        address _creationFeeWallet,
-        address _bankWallet,
-        address _airDropWallet,
-        address _feeWallet,
-        address _wvtruAddress
+        address _creationFeeAddress,
+        address _transactionFeeAddress,
+        address _vibeAddress,
+        address _vtruAirdropAddress,
+        address _airDropAddress,
+        address _wvtruAddress,
+        address _dexAddress
     ) Ownable(msg.sender) {
-        bankWallet = _bankWallet;
-        airDropWallet = _airDropWallet;
-        feeWallet = _feeWallet;
-        creationFeeWallet = _creationFeeWallet;
+        creationFeeAddress = _creationFeeAddress;
+        transactionFeeAddress = _transactionFeeAddress;
+        vibeAddress = _vibeAddress;
+        vtruAirdropAddress = _vtruAirdropAddress;
+        airDropAddress = _airDropAddress;
+        dexAddress = _dexAddress;
         contractPrice = _contractPrice;
         wvtru = IERC20(_wvtruAddress);
     }
@@ -49,15 +55,13 @@ contract PoolFactory is Ownable {
 
         require(_amount >= MIN_SUPPLY * 1e18, "too few tokens to create");
 
-        LiquidityPool pool = new LiquidityPool();
-        (address tokenAddress, address poolAddress) = pool.initialize(
-            _name,
-            _ticker,
-            _uri,
-            _amount
-        );
+        LiquidityPool pool = new LiquidityPool(_name, _ticker, _uri, _amount);
+
+        address tokenAddress = pool.getTokenAddress();
+        address poolAddress = address(pool);
+
         pools[tokenAddress] = poolAddress;
-        wvtru.transfer(creationFeeWallet, contractPrice);
+        wvtru.transfer(creationFeeAddress, contractPrice);
 
         userTokens[msg.sender].push(tokenAddress);
         tokens.push(tokenAddress);
@@ -74,35 +78,29 @@ contract PoolFactory is Ownable {
     }
 
     function getWallets() public view returns (address, address, address) {
-        return (bankWallet, airDropWallet, feeWallet);
+        return (transactionFeeAddress, vibeAddress, vtruAirdropAddress);
     }
 
-    function tokensForWvtru(
-        uint256 wvtruAmount,
-        uint256 tokenSupply
-    ) public view returns (uint256 amount, uint256 fee) {
-        uint poolSupply = (tokenSupply * 98) / 100;
+    function tokensForWvtru(uint256 wvtruAmount, uint256 tokenSupply)
+        public
+        view
+        returns (uint256 amount, uint256 fee)
+    {
+        uint256 poolSupply = (tokenSupply * 98) / 100;
 
-        amount = PoolFormula.getAmountOut(
-            (wvtruAmount * 99) / 100,
-            virtualCoinBalance,
-            poolSupply
-        );
+        amount = PoolFormula.getAmountOut((wvtruAmount * 99) / 100, virtualCoinBalance, poolSupply);
 
         fee = wvtruAmount / 100;
     }
 
-    function wvtruForTokens(
-        uint256 tokenAmount,
-        uint256 tokenSupply
-    ) external view returns (uint256 amount, uint256 fee) {
-        uint poolSupply = (tokenSupply * 98) / 100;
-        amount =
-            (((tokenAmount * 99) / 100) * virtualCoinBalance) /
-            (poolSupply - tokenAmount);
-        fee =
-            ((tokenAmount / 100) * virtualCoinBalance) /
-            (poolSupply - tokenAmount);
+    function wvtruForTokens(uint256 tokenAmount, uint256 tokenSupply)
+        external
+        view
+        returns (uint256 amount, uint256 fee)
+    {
+        uint256 poolSupply = (tokenSupply * 98) / 100;
+        amount = (((tokenAmount * 99) / 100) * virtualCoinBalance) / (poolSupply - tokenAmount);
+        fee = ((tokenAmount / 100) * virtualCoinBalance) / (poolSupply - tokenAmount);
     }
 
     function setContractPrice(uint256 _price) public onlyOwner returns (bool) {
@@ -115,9 +113,7 @@ contract PoolFactory is Ownable {
         return tokens;
     }
 
-    function getUserTokens(
-        address _user
-    ) public view returns (address[] memory) {
+    function getUserTokens(address _user) public view returns (address[] memory) {
         return userTokens[_user];
     }
 

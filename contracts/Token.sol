@@ -7,11 +7,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Token is ERC20, Ownable {
     string public publicUri;
 
-    constructor(
-        string memory _name,
-        string memory _ticker,
-        string memory _publicUri
-    ) Ownable(msg.sender) ERC20(_name, _ticker) {
+    constructor(string memory _name, string memory _ticker, string memory _publicUri)
+        Ownable(msg.sender)
+        ERC20(_name, _ticker)
+    {
         publicUri = _publicUri;
     }
 
