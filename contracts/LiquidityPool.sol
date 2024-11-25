@@ -173,10 +173,10 @@ contract LiquidityPool is Ownable {
     function transferToNewPool() external onlyOwner lock notMigrated {
         migrated = true;
 
-        token.burn((realTokenBalance / 75) * 100);
+        token.burn((realTokenBalance / 100) * 75);
 
         address router = factory.dexRouterAddress();
-        uint tokenAmount = (realTokenBalance / 25) * 100;
+        uint tokenAmount = (realTokenBalance / 100) * 25;
 
         token.approve(router, tokenAmount);
         wvtru.approve(router, realCoinBalance);
