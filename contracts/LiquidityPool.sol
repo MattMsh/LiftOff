@@ -29,9 +29,74 @@ interface IPoolFactory {
     function vibeAddress() external returns (address);
     function vtruAirdropAddress() external returns (address);
     function airDropAddress() external returns (address);
-    function dexAddress() external returns (address);
+    function dexRouterAddress() external returns (address);
 
     function virtualCoinBalance() external view returns (uint256);
+}
+
+interface IPancakeRouter01 {
+    function factory() external view returns (address);
+    function WETH() external view returns (address);
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB);
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountA, uint amountB);
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+
+    function quote(uint amountA, uint reserveA, uint reserveB) external pure returns (uint amountB);
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
+    function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
+    function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
+}
+
+interface IPancakeRouter02 is IPancakeRouter01 {
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
 }
 
 interface wVTRU is IERC20 {
@@ -42,10 +107,6 @@ interface wVTRU is IERC20 {
 
 interface IPancakeFactory {
     function createPair(address tokenA, address tokenB) external returns (address pair);
-}
-
-interface IVTROSwapPair {
-    function sync() external;
 }
 
 contract LiquidityPool is Ownable {
@@ -73,7 +134,7 @@ contract LiquidityPool is Ownable {
     event Action(
         address indexed factory, address initiator, uint256 tokenAmount, uint256 vtruAmount, ActionType, string ticker
     );
-    event PoolTransfered(address pair);
+    event PoolTransfered();
 
     modifier lock() {
         require(!locked, "locked");
@@ -112,16 +173,19 @@ contract LiquidityPool is Ownable {
     function transferToNewPool() external onlyOwner lock notMigrated {
         migrated = true;
 
-        address pair = IPancakeFactory(factory.dexAddress()).createPair(address(wvtru), address(token));
-
         token.burn((realTokenBalance / 75) * 100);
 
-        token.transfer(pair, (realTokenBalance / 25) * 100);
-        wvtru.transfer(pair, realCoinBalance);
+        address router = factory.dexRouterAddress();
+        uint tokenAmount = (realTokenBalance / 25) * 100;
+
+        token.approve(router, tokenAmount);
+        wvtru.approve(router, realCoinBalance);
+
+        IPancakeRouter01(router).addLiquidity(address(wvtru), address(token), realCoinBalance, tokenAmount, 1, 1, address(this), block.timestamp + 365 days);
 
         _updateReserves();
 
-        emit PoolTransfered(pair);
+        emit PoolTransfered();
     }
 
     function _updateReserves() private {

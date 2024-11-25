@@ -10,7 +10,7 @@ contract PoolFactory is Ownable {
     address public vibeAddress;
     address public vtruAirdropAddress;
     address public airDropAddress;
-    address public dexAddress;
+    address public dexRouterAddress;
     IERC20 public wvtru;
 
     uint256 public constant MIN_SUPPLY = 1_000_000;
@@ -30,14 +30,14 @@ contract PoolFactory is Ownable {
         address _vtruAirdropAddress,
         address _airDropAddress,
         address _wvtruAddress,
-        address _dexAddress
+        address _dexRouterAddress
     ) Ownable(msg.sender) {
         creationFeeAddress = _creationFeeAddress;
         transactionFeeAddress = _transactionFeeAddress;
         vibeAddress = _vibeAddress;
         vtruAirdropAddress = _vtruAirdropAddress;
         airDropAddress = _airDropAddress;
-        dexAddress = _dexAddress;
+        dexRouterAddress = _dexRouterAddress;
         contractPrice = _contractPrice;
         wvtru = IERC20(_wvtruAddress);
     }
